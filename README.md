@@ -1,4 +1,4 @@
-# declxml - Declarative XML Processing
+# declxml - Declarative XML Processing [![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
 The declxml library makes defining how data is transformed between XML and Python objects simple. Wrather than writing dozens or hundreds of lines of imperitive logic for serializing and parsing XML documents by hand with the ElementTree or minidom libraries, declxml enables you to simply define the data in your XML document using a declaritive syntax. This makes it easy to quickly implement XML parsers and serializers and allows XML document definitions to be easily extended.
 
 For example, suppose we had some XML data on race results that we want to process

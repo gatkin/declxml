@@ -5,6 +5,14 @@ class XmlParseError(Exception):
     """Represents errors encountered when parsing XML data"""
 
 
+class InvalidPrimitiveValue(XmlParseError):
+    """Represents errors due to invalid primitive values"""
+
+
+class MissingValue(XmlParseError):
+    """Represents errors due to a missing required element"""
+
+
 def parse_xml_file(xml_file_path, root_proccesor):
     """Parses the XML file using the processor as the root of the document"""
     with open(xml_file_path) as xml_file:
@@ -150,7 +158,7 @@ class _Array(object):
         if root.tag == self._nested:
             parsed_array = self._parse(root)
         elif self.required:
-            raise XmlParseError('Missing required array: "{}"'.format(self.alias))
+            raise MissingValue('Missing required array: "{}"'.format(self.alias))
 
         return parsed_array
 
@@ -175,7 +183,7 @@ class _Array(object):
             parsed_array = [self._item_processor.parse_at_element(item) for item in item_iter]
 
         if not parsed_array and self.required:
-            raise XmlParseError('Missing required array: "{}"'.format(self.alias))
+            raise MissingValue('Missing required array: "{}"'.format(self.alias))
 
         return parsed_array
 
@@ -200,7 +208,7 @@ class _Dictionary(object):
             for child in self._child_processors:
                 parsed_dict[child.alias] = child.parse_from_parent(element)
         elif self.required:
-            raise XmlParseError('Missing required dictionary: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
 
         return parsed_dict
 
@@ -211,7 +219,7 @@ class _Dictionary(object):
         if root.tag == self.element_name:
             parsed_dict = self.parse_at_element(root)
         elif self.required:
-            raise XmlParseError('Missing required dictionary: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
 
         return parsed_dict
 
@@ -255,7 +263,7 @@ class _PrimitiveValue(object):
             else:
                 parsed_value = self._parser_func(element.text)
         elif self.required:
-            raise XmlParseError('Missing required element: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required element: "{}"'.format(self.element_name))
 
         return parsed_value
 
@@ -271,7 +279,7 @@ class _PrimitiveValue(object):
         if attribute_value:
             parsed_value = self._parser_func(attribute_value)
         elif self.required:
-            raise XmlParseError('Missing required attribute "{}" on element "{}"'.format(
+            raise MissingValue('Missing required attribute "{}" on element "{}"'.format(
                 self._attribute, self.element_name))
 
         return parsed_value
@@ -290,7 +298,7 @@ def _parse_boolean(element_text):
     elif lowered_text == 'false':
         value = False
     else:
-        raise XmlParseError('Invalid boolean value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid boolean value: {}'.format(element_text))
 
     return value
 
@@ -300,7 +308,7 @@ def _parse_float(element_text):
     try:
         value = float(element_text)
     except ValueError:
-        raise XmlParseError('Invalid float value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid float value: {}'.format(element_text))
 
     return value
 
@@ -310,7 +318,7 @@ def _parse_int(element_text):
     try:
         value = int(element_text)
     except ValueError:
-        raise XmlParseError('Invalid integer value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid integer value: {}'.format(element_text))
 
     return value
 

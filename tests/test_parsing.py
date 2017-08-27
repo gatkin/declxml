@@ -1,4 +1,6 @@
 """Contains unit tests for parsing logic"""
+import os
+
 import pytest
 
 from .. import declxml as xml
@@ -878,5 +880,30 @@ def test_parse_string_strip_whitespace():
     }
 
     actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_xml_file(tmpdir):
+    """Tests parsing an XML file"""
+    xml_contents = """
+    <root>
+        <value>27</value>
+    </root>
+    """ 
+    
+    xml_file = tmpdir.join('data.xml')
+    xml_file.write(xml_contents)
+    xml_path = os.path.join(xml_file.dirname, xml_file.basename)
+
+    processor = xml.dictionary('root', [
+        xml.integer('value'),
+    ])
+
+    expected = {
+        'value': 27,
+    }
+
+    actual = xml.parse_xml_file(xml_path, processor)
 
     assert expected == actual

@@ -4,6 +4,314 @@ import pytest
 from .. import declxml as xml
 
 
+def test_parse_array_embedded():
+    """Parse array embedded within its parent element"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+        <value>21</value>
+        <value>17</value>
+        <value>90</value>
+        <value>6</value>
+    </root>
+    """
+
+    values_array = xml.array(xml.integer('value'))
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        values_array,
+    ])
+
+    expected = {
+        'message': 'Hello, World!',
+        'value': [21, 17, 90, 6],
+    }
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_embedded_aliased():
+    """Parse array embedded within its parent element"""
+    xml_string = """
+    <root>
+        <message>Goodbye, World!</message>
+        <value>765</value>
+        <value>3456</value>
+    </root>
+    """
+
+    values_array = xml.array(xml.integer('value'), alias='numbers')
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        values_array,
+    ])
+
+    expected = {
+        'message': 'Goodbye, World!',
+        'numbers': [765, 3456],
+    }
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_missing():
+    """Parse missing array"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+    </root>
+    """
+
+    values_array = xml.array(xml.integer('value'))
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        values_array,
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.parse_xml_string(xml_string, processor)
+
+
+def test_parse_array_missing_optional():
+    """Parse missing optional array"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+    </root>
+    """
+
+    values_array = xml.array(xml.integer('value', required=False), alias='numbers')
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        values_array,
+    ])
+
+    expected = {
+        'message': 'Hello, World!',
+        'numbers': [],
+    }
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_nested():
+    """Parse nested array"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+        <numbers>
+            <number>1</number>
+            <number>2</number>
+        </numbers>
+    </root>
+    """
+
+    numbers_array = xml.array(xml.integer('number'), nested='numbers')
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        numbers_array,
+    ])
+
+    expected = {
+        'message': 'Hello, World!',
+        'numbers': [1, 2],
+    }
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_of_arrays():
+    """Parse array of arrays"""
+    xml_string = """
+    <root-array>
+        <values>
+            <value>1</value>
+            <value>17</value>
+            <value>33</value>
+        </values>
+        <values>
+            <value>99</value>
+        </values>
+    </root-array>
+    """
+
+    values_array = xml.array(xml.integer('value'), nested='values')
+
+    root_processor = xml.array(values_array, nested='root-array')
+
+    expected = [
+        [1, 17, 33],
+        [99],
+    ]
+
+    actual = xml.parse_xml_string(xml_string, root_processor)
+
+    assert expected == actual
+
+
+def test_parse_array_of_dicts():
+    """Parse array of dictionaries"""
+    xml_string = """
+    <array>
+        <person>
+            <name>John</name>
+            <age>27</age>
+        </person>
+        <person>
+            <name>Jane</name>
+            <age>30</age>
+        </person>
+    </array>
+    """
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        xml.integer('age'),
+    ])
+
+    processor = xml.array(person, nested='array')
+
+    expected = [
+        {
+            'name': 'John',
+            'age': 27,
+        },
+        {
+            'name': 'Jane',
+            'age': 30,
+        },
+    ]
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_of_primitives():
+    """Parse array of primitive values"""
+    xml_string = """
+    <array>
+        <value>1</value>
+        <value>2</value>
+        <value>3</value>
+    </array>
+    """
+
+    processor = xml.array(xml.integer('value'), nested='array')
+
+    expected = [1, 2, 3]
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_optional_present():
+    """Parse optional array that is present"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+        <value>45</value>
+        <value>908</value>
+    </root>
+    """
+
+    values_array = xml.array(xml.integer('value', required=False), alias='numbers')
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        values_array,
+    ])
+
+    expected = {
+        'message': 'Hello, World!',
+        'numbers': [45, 908],
+    }
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_root_missing():
+    """Parse an array as the root processor"""
+    xml_string = """
+    <wrong-array>
+        <value>1</value>
+        <value>2</value>
+    </wrong-array>
+    """
+
+    processor = xml.array(xml.integer('value'), nested='array')
+
+    with pytest.raises(xml.MissingValue):
+        xml.parse_xml_string(xml_string, processor)
+
+
+def test_parse_array_root_non_nested():
+    """Parse a non-nested array as the root processor"""
+    xml_string = """
+    <root>
+        <value>1</value>
+        <value>2</value>
+    </root>
+    """
+
+    processor = xml.array(xml.integer('value'))
+
+    with pytest.raises(xml.InvalidRootProcessor):
+        xml.parse_xml_string(xml_string, processor)
+
+
+def test_parse_array_root_optional():
+    """Parse an array as the root processor"""
+    xml_string = """
+    <wrong-array>
+        <value>1</value>
+        <value>2</value>
+    </wrong-array>
+    """
+
+    processor = xml.array(xml.integer('value', required=False), nested='array')
+
+    expected = []
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
+def test_parse_array_root_optional_present():
+    """Parse an array as the root processor"""
+    xml_string = """
+    <array>
+        <value>1</value>
+        <value>2</value>
+    </array>
+    """
+
+    processor = xml.array(xml.integer('value', required=False), nested='array')
+
+    expected = [1, 2]
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
 def test_parse_attribute():
     """Parses an attribute value"""
     xml_string = """
@@ -44,7 +352,6 @@ def test_parse_attribute_aliased():
     actual = xml.parse_xml_string(xml_string, processor)
 
     assert expected == actual
-
 
 
 def test_parse_attribute_default():

@@ -57,7 +57,7 @@ def array(item_processor, alias=None, nested=None):
             <array-item>1</array-item>
         </root-element>
 
-    :param item_processor: A declxml processor object for the items of the array
+    :param item_processor: A declxml processor object for the items of the array.
     :param alias: If specified, the name given to the array when read from XML.
         If not specified, then the name of the items is used instead.
     :param nested: If the array is a nested array, then this should be the name of
@@ -157,7 +157,8 @@ class _Array(object):
     def parse_at_root(self, root):
         """Parses the root XML element as an array"""
         if not self._nested:
-            raise XmlParseError('Non-nested array "{}" cannot be root element'.format(self.alias))
+            raise InvalidRootProcessor('Non-nested array "{}" cannot be root element'.format(
+                self.alias))
 
         parsed_array = []
         if root.tag == self._nested:
@@ -172,7 +173,7 @@ class _Array(object):
         if self._nested:
             item_iter = parent.find(self._nested)
         else:
-            # The array's items are emebedded within the paret
+            # The array's items are emebedded within the parent
             item_iter = parent.findall(self._item_processor.element_name)
 
         return self._parse(item_iter)

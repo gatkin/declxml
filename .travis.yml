@@ -11,3 +11,6 @@ python:
   - "nightly"
 install: "pip install -r requirements.txt"
 script: pytest
+
+after_success:
+  - CODECLIMATE_REPO_TOKEN=5147f54e26e00fdb8409cc122c7b9ac70924f3e6b228685741c9b95f8d8bc8f8 codeclimate-test-reporter

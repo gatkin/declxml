@@ -9,6 +9,10 @@ class InvalidPrimitiveValue(XmlParseError):
     """Represents errors due to invalid primitive values"""
 
 
+class InvalidRootProcessor(XmlParseError):
+    """Represents errors due to an invalid root processor"""
+
+
 class MissingValue(XmlParseError):
     """Represents errors due to a missing required element"""
 
@@ -25,7 +29,7 @@ def parse_xml_file(xml_file_path, root_proccesor):
 def parse_xml_string(xml_string, root_processor):
     """Parses the XML string using the processor as the root of the document"""
     if not _is_valid_root_processor(root_processor):
-        raise XmlParseError('Invalid root processor')
+        raise InvalidRootProcessor('Invalid root processor')
 
     root = ET.fromstring(xml_string)
     return root_processor.parse_at_root(root)
@@ -47,6 +51,7 @@ def array(item_processor, alias=None, nested=None):
         </root-element>
 
     The corresponding embedded array would look like:
+		<root-element>
             <some-element>ABC</some-element>
             <array-item>0</array-item>
             <array-item>1</array-item>

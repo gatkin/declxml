@@ -158,6 +158,205 @@ def test_parse_boolean_invalid():
         xml.parse_xml_string(xml_string, processor)
 
 
+def test_parse_dictionary_aliased():
+    """Parses a dictionary value that is aliased"""
+    xml_string = """
+    <person>
+        <name>John Doe</name>
+        <demographics>
+            <age>25</age>
+            <gender>male</gender>
+        </demographics>
+    </person>
+    """
+
+    stats = xml.dictionary('demographics', [
+        xml.integer('age'),
+        xml.string('gender'),
+    ], alias='stats')
+
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        stats,
+    ])
+
+    expected = {
+        'name': 'John Doe',
+        'stats': {
+            'age': 25,
+            'gender': 'male',
+        },
+    }
+
+    actual = xml.parse_xml_string(xml_string, person)
+
+    assert expected == actual
+
+
+def test_parse_dictionary_missing():
+    """Parse a missing dictionary"""
+    xml_string = """
+    <person>
+        <name>John Doe</name>
+        <demographics>
+            <age>25</age>
+            <gender>male</gender>
+        </demographics>
+    </person>
+    """
+
+    demographics = xml.dictionary('demographics', [
+        xml.integer('age'),
+        xml.string('gender'),
+    ])
+
+    address = xml.dictionary('address', [
+        xml.string('street'),
+        xml.integer('zip'),
+        xml.string('state'),
+    ])
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        demographics,
+        address,
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.parse_xml_string(xml_string, person)
+
+
+def test_parse_dictionary_missing_optional():
+    """Parse missing optional dictionaries"""
+    xml_string = """
+    <person>
+        <name>John Doe</name>
+        <demographics>
+            <age>25</age>
+            <gender>male</gender>
+        </demographics>
+    </person>
+    """
+
+    demographics = xml.dictionary('demographics', [
+        xml.integer('age'),
+        xml.string('gender'),
+    ])
+
+    address = xml.dictionary('address', [
+        xml.string('street'),
+        xml.integer('zip'),
+        xml.string('state'),
+    ], required=False)
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        demographics,
+        address,
+    ])
+
+    expected = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 25,
+            'gender': 'male',
+        },
+        'address': {},
+    }
+
+    actual = xml.parse_xml_string(xml_string, person)
+
+    assert expected == actual
+
+
+def test_parse_dictionary_nested():
+    """Parse nested dictionaries"""
+    xml_string = """
+    <person>
+        <name>John Doe</name>
+        <demographics>
+            <age>25</age>
+            <gender>male</gender>
+        </demographics>
+        <address>
+            <street>123 ABC Street</street>
+            <zip>123456</zip>
+            <state>NY</state>
+        </address>
+    </person>
+    """
+
+    demographics = xml.dictionary('demographics', [
+        xml.integer('age'),
+        xml.string('gender'),
+    ])
+
+    address = xml.dictionary('address', [
+        xml.string('street'),
+        xml.integer('zip'),
+        xml.string('state'),
+    ])
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        demographics,
+        address,
+    ])
+
+    expected = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 25,
+            'gender': 'male',
+        },
+        'address': {
+            'street': '123 ABC Street',
+            'zip': 123456,
+            'state': 'NY',
+        },
+    }
+
+    actual = xml.parse_xml_string(xml_string, person)
+
+    assert expected == actual
+
+
+def test_parse_dictionary_root_missing():
+    """Parse a dictionary as root"""
+    xml_string = """
+    <wrong-root>
+        <value>hello</value>
+    </wrong-root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('value'),
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.parse_xml_string(xml_string, processor)
+
+
+def test_parse_dictionary_root_optional():
+    """Parse a dictionary as root"""
+    xml_string = """
+    <wrong-root>
+        <value>hello</value>
+    </wrong-root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('value'),
+    ], required=False)
+
+    expected = {}
+
+    actual = xml.parse_xml_string(xml_string, processor)
+
+    assert expected == actual
+
+
 def test_parse_float_invalid():
     """Parse an invalid float value"""
     xml_string = """
@@ -276,11 +475,11 @@ def test_primitive_default():
     assert expected == actual
 
 
-def test_primitive_default_preset():
+def test_primitive_default_present():
     """Parses primitive values with defaults specified"""
     xml_string = """
     <root>
-        <boolean>true</boolean>
+        <boolean>false</boolean>
         <float>3.14</float>
         <int>1</int>
         <string>Hello, World</string>
@@ -288,14 +487,14 @@ def test_primitive_default_preset():
     """
 
     processor = xml.dictionary('root', [
-        xml.boolean('boolean', required=False, default=False),
+        xml.boolean('boolean', required=False, default=True),
         xml.floating_point('float', required=False, default=0.0),
         xml.integer('int', required=False, default=0),
         xml.string('string', required=False, default=''),
     ])
 
     expected = {
-        'boolean': True,
+        'boolean': False,
         'float': 3.14,
         'int': 1,
         'string': 'Hello, World',
@@ -319,6 +518,18 @@ def test_parse_primitive_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
+        xml.parse_xml_string(xml_string, processor)
+
+
+def test_parse_primitive_root_parser():
+    """Parse with a primitive-valued root element"""
+    xml_string = """
+    <root>15</root>
+    """
+
+    processor = xml.integer('root')
+
+    with pytest.raises(xml.InvalidRootProcessor):
         xml.parse_xml_string(xml_string, processor)
 
 

@@ -85,6 +85,33 @@ races = xml.parse_xml_file('races.xml', running_season_xml)
 print(races)
 ```
 
+Parsing the above XML file would result in
+```python
+{   'year': 2017,
+    'runner': {'age': 27, 'gender': 'Male', 'name': 'John Doe'},
+    'races': [   {   'date': '3/17/2017',
+                     'distance': 10.0,
+                     'distance_units': 'kilometers',
+                     'location': {   'city': 'Dublin',
+                                     'country': 'Ireland',
+                                     'state': ''},
+                     'name': "St Patrick's 10k",
+                     'result': {   'place': 51,
+                                   'time': 2413,
+                                   'time_units': 'seconds'}},
+                 {   'date': '4/17/2017',
+                     'distance': 26.2,
+                     'distance_units': 'miles',
+                     'location': {   'city': 'Boston',
+                                     'country': 'USA',
+                                     'state': 'MA'},
+                     'name': 'Boston Marathon',
+                     'result': {   'place': 171,
+                                   'time': 7200,
+                                   'time_units': 'seconds'}}],
+}
+```
+
 The same processor can be used for serializing Python data structures as well
 ```python
 races = xml.parse_xml_file('races.xml', running_season_xml)

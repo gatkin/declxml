@@ -1,4 +1,5 @@
 """Enables XML to be processed using declarative syntax"""
+import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
 class XmlParseError(Exception):
@@ -33,6 +34,27 @@ def parse_xml_string(xml_string, root_processor):
 
     root = ET.fromstring(xml_string)
     return root_processor.parse_at_root(root)
+
+
+def serialize_xml_string(value, root_processor, indent=None):
+    """
+    Serializes the value to an XML string using the root processor.
+
+    :param indent: If specified, then the XML will be pretty formatted with the indentation.
+
+    :return: The serialized XML string.
+    """
+    if not _is_valid_root_processor(root_processor):
+        raise InvalidRootProcessor('Invalid root processor')
+
+    root = root_processor.serialize(value)
+    serialized = ET.tostring(root)
+
+    # Why does element tree not support pretty printing XML?
+    if indent:
+        serialized = minidom.parseString(serialized).toprettyxml(indent=indent)
+
+    return serialized
 
 
 def array(item_processor, alias=None, nested=None):
@@ -178,6 +200,27 @@ class _Array(object):
 
         return self._parse(item_iter)
 
+    def serialize(self, value):
+        """Serializes the value into a new Element object and returns it"""
+        if self._nested is None:
+            raise InvalidRootProcessor('Cannot directly serialize a non-nested array: {}'.format(
+                self.alias))
+
+        element = ET.Element(self._nested)
+        self._serialize(element, value)
+
+        return element
+
+    def serialize_on_parent(self, parent, value):
+        """Serializes value and appends it to the parent element"""
+        if self._nested is not None:
+            array_parent = _element_get_or_add_from_parent(parent, self._nested)
+        else:
+            # Embedded array has all items serialized directly on the parent.
+            array_parent = parent
+
+        self._serialize(array_parent, value)
+
     def _parse(self, item_iter):
         """
         Parses the array data by using the provided iterator of XML elements to iterate over
@@ -192,6 +235,12 @@ class _Array(object):
             raise MissingValue('Missing required array: "{}"'.format(self.alias))
 
         return parsed_array
+
+    def _serialize(self, array_parent, value):
+        """Serializes the array value adding it to the array parent element"""
+        for item_value in value:
+            item_element = self._item_processor.serialize(item_value)
+            array_parent.append(item_element)
 
 
 class _Dictionary(object):
@@ -233,6 +282,28 @@ class _Dictionary(object):
         """Parses the dictionary data from the provided parent XML element"""
         element = parent.find(self.element_name)
         return self.parse_at_element(element)
+
+    def serialize(self, value):
+        """Serializes the value to a new element and returns the element"""
+        element = ET.Element(self.element_name)
+        self._serialize(element, value)
+        return element
+
+    def serialize_on_parent(self, parent, value):
+        """Serializes the value and adds it to the parent"""
+        element = _element_get_or_add_from_parent(parent, self.element_name)
+        self._serialize(element, value)
+
+    def _serialize(self, element, value):
+        """Serializes the dictionary appending all serialized children to the element"""
+        if value is None and self.required:
+            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
+        elif value is None:
+            value = {}
+
+        for child in self._child_processors:
+            child_value = value.get(child.alias)
+            child.serialize_on_parent(element, child_value)
 
 
 class _PrimitiveValue(object):
@@ -278,6 +349,17 @@ class _PrimitiveValue(object):
         element = parent.find(self.element_name)
         return self.parse_at_element(element)
 
+    def serialize(self, value):
+        """Serializes the value into a new element object and returns the element"""
+        element = ET.Element(self.element_name)
+        self._serialize(element, value)
+        return element
+
+    def serialize_on_parent(self, parent, value):
+        """Serializes the value adding it to the parent element"""
+        element = _element_get_or_add_from_parent(parent, self.element_name)
+        self._serialize(element, value)
+
     def _parse_attribute(self, element):
         """Parses the primiteve value within the XML element's attribute"""
         parsed_value = self._default
@@ -289,6 +371,36 @@ class _PrimitiveValue(object):
                 self._attribute, self.element_name))
 
         return parsed_value
+
+    def _serialize(self, element, value):
+        """Serializes the value to the element"""
+        if value is None and self.required:
+            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
+        elif value is None:
+            serialized_value = str(self._default)
+        else:
+            serialized_value = str(value)
+
+        if self._attribute:
+            element.set(self._attribute, serialized_value)
+        else:
+            element.text = serialized_value
+
+
+def _element_get_or_add_from_parent(parent, element_name):
+    """
+    If an element with the give name has already been added to the parent element,
+    then this returns the existing element. Otherwise, this will create a new element
+    with the given name, append it to the parent, and return the newly created element.
+    This allows for multiple values to be serialized to the same element which can occur
+    if an element has any attributes.
+    """
+    element = parent.find(element_name)
+    if element is None:
+        element = ET.Element(element_name)
+        parent.append(element)
+
+    return element
 
 
 def _is_valid_root_processor(processor):

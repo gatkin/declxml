@@ -1,0 +1,248 @@
+"""Contains unit tests for serialization logic"""
+import re
+
+import pytest
+
+from .. import declxml as xml
+
+
+def test_attribute_serialize():
+    """serializing an attribute value"""
+    value = {
+        'value': 'Hello, World'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('element', attribute='value')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <element value="Hello, World" />
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_attribute_serialize_aliased():
+    """Serialize an aliased attribute"""
+    value = {
+        'pi': 3.14,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.floating_point('constant', attribute='value', alias='pi'),
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <constant value="3.14" />
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_attribute_serialize_default_missing():
+    """Serializes a missing attribute value with a default specified"""
+    value = {
+        'data': 123,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='units', required=False, default='feet')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data units="feet">123</data>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_attribute_serialize_default_present():
+    """Serializes an attribute value with a default specified"""
+    value = {
+        'data': 123,
+        'units': 'miles'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='units', required=False, default='feet')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data units="miles">123</data>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+    
+    assert expected == actual
+
+
+def test_attribute_serialize_missing():
+    """Serialize a missing attribute value"""
+    value = {
+        'data': 123,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='units')
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_attribute_serialize_multiple():
+    """Serializing multiple attributes to the same element"""
+    value = {
+        'attribute_a': 'Hello, World',
+        'attribute_b': True,
+        'data': 1,
+        'message': 'Hello, World'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='attribute_a'),
+        xml.boolean('data', attribute='attribute_b'),
+        xml.string('message')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data attribute_a="Hello, World" attribute_b="True">1</data>
+        <message>Hello, World</message> 
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_serialize_aliased():
+    """Serializes an aliased primitive value"""
+    value = {
+        'data': 456,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('element', alias='data'),
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <element>456</element>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_serialize_default_missing():
+    """Serializes a missing primitive value with a defualt specified"""
+    value = {}
+
+    processor = xml.dictionary('root', [
+        xml.string('message', required=False, default='Hello, World'),
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <message>Hello, World</message>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_serialize_default_present():
+    """Serializes a missing primitive value with a defualt specified"""
+    value = {
+        'message': 'Hola, Mars'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message', required=False, default='Hello, World'),
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <message>Hola, Mars</message>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_serialize_missing():
+    """Serializes a missing primitive value"""
+    value = {}
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_primitive_values_serialize():
+    """Serializes primitive values"""
+    value = {
+        'boolean': 'True',
+        'float': 3.14,
+        'int': 1,
+        'string': 'Hello, World'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean'),
+        xml.floating_point('float'),
+        xml.integer('int'),
+        xml.string('string'),
+    ])
+    
+    expected = _strip_xml("""
+    <root>  
+        <boolean>True</boolean>
+        <float>3.14</float>
+        <int>1</int>
+        <string>Hello, World</string>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def _strip_xml(xml_string):
+    """Prepares the XML string so it can be compared to the actual serialized output""" 
+    # Strip internal whitespace between tags
+    stripped = re.sub(r'>\s+<', '><', xml_string)
+
+    # Strip external whitespace
+    return stripped.strip().encode('utf8')

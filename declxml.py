@@ -274,7 +274,7 @@ class _Array(object):
 
         for item_value in value:
             item_element = self._item_processor.serialize(item_value)
-            if item_element:
+            if item_element is not None:
                 array_parent.append(item_element)
 
 

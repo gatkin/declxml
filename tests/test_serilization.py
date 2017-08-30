@@ -89,7 +89,53 @@ def test_attribute_serialize_default_present():
     """)
 
     actual = xml.serialize_xml_string(value, processor)
-    
+
+    assert expected == actual
+
+
+def test_attribute_serialize_falsey():
+    """Tests serializing a Falsey attribute value"""
+    value = {
+        'message': '',
+        'data': 123,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='message', required=False)
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data message="">123</data>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_attribute_serialize_falsey_omitted():
+    """Tests serializing a Falsey attribute value"""
+    value = {
+        'message': '',
+        'data': 123,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='message', required=False, omit_empty=True)
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data>123</data>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
     assert expected == actual
 
 
@@ -106,6 +152,28 @@ def test_attribute_serialize_missing():
 
     with pytest.raises(xml.MissingValue):
         xml.serialize_xml_string(value, processor)
+
+
+def test_attribute_serialize_missing_empty():
+    """Tests serializing a Falsey attribute value"""
+    value = {
+        'data': 123,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('data'),
+        xml.string('data', attribute='message', required=False, omit_empty=True)
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data>123</data>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
 
 
 def test_attribute_serialize_multiple():
@@ -158,8 +226,10 @@ def test_primitive_serialize_aliased():
 
 
 def test_primitive_serialize_default_missing():
-    """Serializes a missing primitive value with a defualt specified"""
-    value = {}
+    """Serializes a missing primitive value with a default specified"""
+    value = {
+        'number': 898,
+    }
 
     processor = xml.dictionary('root', [
         xml.string('message', required=False, default='Hello, World'),
@@ -199,20 +269,100 @@ def test_primitive_serialize_default_present():
 
 def test_primitive_serialize_missing():
     """Serializes a missing primitive value"""
-    value = {}
+    value = {
+        'data': 1
+    }
 
     processor = xml.dictionary('root', [
         xml.string('message'),
+        xml.integer('data')
     ])
 
     with pytest.raises(xml.MissingValue):
         xml.serialize_xml_string(value, processor)
 
 
+def test_primitive_serialize_missing_omitted():
+    """Serializes a missing primitive value"""
+    value = {
+        'data': 1
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message', required=False, omit_empty=True),
+        xml.integer('data')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <data>1</data>
+    </root>  
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_values_serialize_falsey():
+    """Serialize false primitive values"""
+    value = {
+        'boolean': False,
+        'float': 0.0,
+        'int': 0,
+        'string': ''
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean', required=False),
+        xml.floating_point('float', required=False),
+        xml.integer('int', required=False),
+        xml.string('string', required=False),
+    ])
+
+    expected = _strip_xml("""
+    <root>  
+        <boolean>False</boolean>
+        <float>0.0</float>
+        <int>0</int>
+        <string />
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_values_serialize_falsey_omitted():
+    """Serialize false primitive values"""
+    value = {
+        'boolean': False,
+        'float': 0.0,
+        'int': 0,
+        'string': ''
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean', required=False, omit_empty=True),
+        xml.floating_point('float', required=False, omit_empty=True),
+        xml.integer('int', required=False, omit_empty=True),
+        xml.string('string', required=False, omit_empty=True),
+    ])
+
+    expected = _strip_xml("""
+    <root />  
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
 def test_primitive_values_serialize():
     """Serializes primitive values"""
     value = {
-        'boolean': 'True',
+        'boolean': True,
         'float': 3.14,
         'int': 1,
         'string': 'Hello, World'
@@ -224,7 +374,7 @@ def test_primitive_values_serialize():
         xml.integer('int'),
         xml.string('string'),
     ])
-    
+
     expected = _strip_xml("""
     <root>  
         <boolean>True</boolean>

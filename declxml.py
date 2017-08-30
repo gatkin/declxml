@@ -1,4 +1,5 @@
 """Enables XML to be processed using declarative syntax"""
+import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
@@ -42,12 +43,16 @@ def serialize_xml_string(value, root_processor, indent=None):
 
     :param indent: If specified, then the XML will be pretty formatted with the indentation.
 
-    :return: The serialized XML string.
+    :return: The serialized XML string. If the omit_empty option was specified for the root
+        processer, and the value is a Falsey value, then an empty string will be returned.
     """
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
     root = root_processor.serialize(value)
+    if root is None:
+        return ''
+
     serialized = ET.tostring(root)
 
     # Why does element tree not support pretty printing XML?
@@ -57,7 +62,7 @@ def serialize_xml_string(value, root_processor, indent=None):
     return serialized
 
 
-def array(item_processor, alias=None, nested=None):
+def array(item_processor, alias=None, nested=None, omit_empty=False):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -85,13 +90,15 @@ def array(item_processor, alias=None, nested=None):
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
         the array is treated as an embedded array.
+    :param omit_empty: If True, then empty lists will be omitted when serializing
+        array values to XML.
 
     :return: A declxml processor object.
     """
-    return _Array(item_processor, alias, nested)
+    return _Array(item_processor, alias, nested, omit_empty)
 
 
-def boolean(element_name, attribute=None, required=True, alias=None, default=False):
+def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False):
     """
     Creates a processor for boolean values.
 
@@ -105,13 +112,14 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
         XML. If not specified, then the element_name is used as the name of the value.
     :param default: Default value to use if the element is not present. This option is only
         valid if required is specified as False.
+    :param omit_empty: If True, then Falsey values will be ommitted when serializing to XML.
 
     :return: A declxml processor object.
     """
-    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default)
+    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty)
 
 
-def dictionary(element_name, children, required=True, alias=None):
+def dictionary(element_name, children, required=True, alias=None, omit_empty=False):
     """
     Creates a processor for dictionary values.
 
@@ -121,31 +129,33 @@ def dictionary(element_name, children, required=True, alias=None):
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
+    :param omit_empty: If True, the empty dictionary values will be omitted when serializing
+        to XML.
 
     :return: A declxml processor object.
     """
-    return _Dictionary(element_name, children, required, alias)
+    return _Dictionary(element_name, children, required, alias, omit_empty)
 
 
-def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0):
+def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False):
     """
     Creates a processor for floating point values.
 
     .. seealso:: boolean()
     """
-    return _PrimitiveValue(element_name, _parse_float, attribute, required, alias, default)
+    return _PrimitiveValue(element_name, _parse_float, attribute, required, alias, default, omit_empty)
 
 
-def integer(element_name, attribute=None, required=True, alias=None, default=0):
+def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False):
     """
     Creates a processor for integer values.
 
     .. seealso:: boolean()
     """
-    return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default)
+    return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default, omit_empty)
 
 
-def string(element_name, attribute=None, required=True, alias=None, default='', strip_whitespace=True):
+def string(element_name, attribute=None, required=True, alias=None, default='', strip_whitespace=True, omit_empty=False):
     """
     Creates a processor for integer values.
 
@@ -155,15 +165,16 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     .. seealso:: boolean()
     """
     parser = _parse_string(strip_whitespace)
-    return _PrimitiveValue(element_name, parser, attribute, required, alias, default)
+    return _PrimitiveValue(element_name, parser, attribute, required, alias, default, omit_empty)
 
 
 class _Array(object):
     """An XML processor object for Array values"""
 
-    def __init__(self, item_processor, alias=None, nested=None):
+    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
         self._item_processor = item_processor
         self._nested = nested
+        self.omit_empty = omit_empty
         self.required = item_processor.required
         if alias:
             self.alias = alias
@@ -201,10 +212,21 @@ class _Array(object):
         return self._parse(item_iter)
 
     def serialize(self, value):
-        """Serializes the value into a new Element object and returns it"""
+        """
+        Serializes the value into a new Element object and returns it. If the
+        value is an empty list, and the processor has been configured with the
+        omit_empty option specified, then this will return None.
+        """
         if self._nested is None:
             raise InvalidRootProcessor('Cannot directly serialize a non-nested array: {}'.format(
                 self.alias))
+
+        if not value and self.required:
+            raise MissingValue('Missing required array: "{}"'.format(
+                self.alias))
+
+        if not value and self.omit_empty:
+            return None
 
         element = ET.Element(self._nested)
         self._serialize(element, value)
@@ -213,6 +235,13 @@ class _Array(object):
 
     def serialize_on_parent(self, parent, value):
         """Serializes value and appends it to the parent element"""
+        if not value and self.required:
+            raise MissingValue('Missing required array: "{}"'.format(
+                self.alias))
+
+        if not value and self.omit_empty:
+            return  # Do Nothing
+
         if self._nested is not None:
             array_parent = _element_get_or_add_from_parent(parent, self._nested)
         else:
@@ -238,18 +267,25 @@ class _Array(object):
 
     def _serialize(self, array_parent, value):
         """Serializes the array value adding it to the array parent element"""
+        if not value:
+            # Nothing to do. Avoid attempting to iterate over a possibly
+            # None value.
+            return
+
         for item_value in value:
             item_element = self._item_processor.serialize(item_value)
-            array_parent.append(item_element)
+            if item_element:
+                array_parent.append(item_element)
 
 
 class _Dictionary(object):
     """An XML processor object for dictionary values"""
 
-    def __init__(self, element_name, child_processors, required=True, alias=None):
+    def __init__(self, element_name, child_processors, required=True, alias=None, omit_empty=False):
         self.element_name = element_name
         self._child_processors = child_processors
         self.required = required
+        self.omit_empty = omit_empty
         if alias:
             self.alias = alias
         else:
@@ -284,21 +320,36 @@ class _Dictionary(object):
         return self.parse_at_element(element)
 
     def serialize(self, value):
-        """Serializes the value to a new element and returns the element"""
+        """
+        Serializes the value to a new element and returns the element. If omit_empty
+        was specified and the value is an empty dictionary, then this will return
+        None.
+        """
+        if not value and self.required:
+            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
+
+        if not value and self.omit_empty:
+            return None
+
         element = ET.Element(self.element_name)
         self._serialize(element, value)
         return element
 
     def serialize_on_parent(self, parent, value):
         """Serializes the value and adds it to the parent"""
+        if not value and self.required:
+            raise MissingValue('Missing required dictionary: "{}"'.format(
+                self.element_name))
+
+        if not value and self.omit_empty:
+            return  # Do Nothing
+
         element = _element_get_or_add_from_parent(parent, self.element_name)
         self._serialize(element, value)
 
     def _serialize(self, element, value):
         """Serializes the dictionary appending all serialized children to the element"""
-        if value is None and self.required:
-            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
-        elif value is None:
+        if value is None:
             value = {}
 
         for child in self._child_processors:
@@ -309,7 +360,7 @@ class _Dictionary(object):
 class _PrimitiveValue(object):
     """An XML processor object for processing primitive values"""
 
-    def __init__(self, element_name, parser_func, attribute=None, required=True, alias=None, default=None):
+    def __init__(self, element_name, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False):
         """
         :param element_name: Name of the XML element containing the value.
         :param parser_func: Function to parse the raw XML value. Should take a string and return
@@ -317,18 +368,35 @@ class _PrimitiveValue(object):
         :param required: Indicates whether the value is required.
         :param alias: Alternative name to give to the value. If not specified, element_name is used.
         :param default: Default value. Only valid if required is False.
+        :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if required is
+            False.
         """
         self.element_name = element_name
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
         self._default = default
+
         if alias:
             self.alias = alias
         elif attribute:
             self.alias = attribute
         else:
             self.alias = element_name
+
+        # If a value is required, then it will never be ommitted when serialized. This
+        # is to ensure that data that is serialized by a processor can also be parsed
+        # by a processor. Omitting required values would lead to an error when attempting
+        # to parse the XML data. This only needs to be enforced for primitive values where
+        # a value must be None to be considered missing, but is considered empty if it is
+        # falsey.
+        if required:
+            self.omit_empty = False
+            if omit_empty:
+                warnings.warn('omit_empty ignored on primitive values when required is specified')
+        else:
+            self.omit_empty = omit_empty
+
 
     def parse_at_element(self, element):
         """Parses the primitive value at the given XML element"""
@@ -350,13 +418,29 @@ class _PrimitiveValue(object):
         return self.parse_at_element(element)
 
     def serialize(self, value):
-        """Serializes the value into a new element object and returns the element"""
+        """
+        Serializes the value into a new element object and returns the element. If the omit_empty
+        option was specified and the value is falsey, then this will return None.
+        """
+        # Note that falsey values are not treated as missing, but they may be omitted.
+        if value is None and self.required:
+            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
+
+        if not value and self.omit_empty:
+            return None
+
         element = ET.Element(self.element_name)
         self._serialize(element, value)
         return element
 
     def serialize_on_parent(self, parent, value):
         """Serializes the value adding it to the parent element"""
+        if value is None and self.required:
+            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
+
+        if not value and self.omit_empty:
+            return  # Do Nothing
+
         element = _element_get_or_add_from_parent(parent, self.element_name)
         self._serialize(element, value)
 
@@ -374,9 +458,10 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value):
         """Serializes the value to the element"""
-        if value is None and self.required:
-            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
-        elif value is None:
+        # A value is only considered missing, and hence elegible to be replaced by its
+        # default only if it is None. Falsey values are not considered missing and are
+        # not replaced by the default.
+        if value is None:
             serialized_value = str(self._default)
         else:
             serialized_value = str(value)

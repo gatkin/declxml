@@ -204,6 +204,201 @@ def test_attribute_serialize_multiple():
     assert expected == actual
 
 
+def test_dictionary_serialize_root_empty():
+    """Serliazes an empty root dictionary"""
+    value = {}
+
+    processor = xml.dictionary('root', [
+        xml.string('message')
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_dictionary_serialize_nested():
+    """Serializes nested dictionaries"""
+    value = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 27,
+            'gender': 'male',
+        },
+        'favorites': {
+            'food': 'pizza',
+            'color': 'blue'
+        }
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.dictionary('demographics', [
+            xml.integer('age'),
+            xml.string('gender')
+        ]),
+        xml.dictionary('favorites', [
+            xml.string('food'),
+            xml.string('color')
+        ])
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <name>John Doe</name>
+        <demographics>
+            <age>27</age>
+            <gender>male</gender>
+        </demographics>
+        <favorites>
+            <food>pizza</food>
+            <color>blue</color>
+        </favorites>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_dictionary_serialize_nested_aliased():
+    """Serializes nested aliased dictionaries"""
+    value = {
+        'name': 'John Doe',
+        'stats': {
+            'age': 27,
+            'gender': 'male',
+        }
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.dictionary('demographics', [
+            xml.integer('age'),
+            xml.string('gender')
+        ], alias='stats')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <name>John Doe</name>
+        <demographics>
+            <age>27</age>
+            <gender>male</gender>
+        </demographics>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_dictionary_serialize_nested_missing():
+    """Serializes nested dictionaries"""
+    value = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 27,
+            'gender': 'male',
+        },
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.dictionary('demographics', [
+            xml.integer('age'),
+            xml.string('gender')
+        ]),
+        xml.dictionary('favorites', [
+            xml.string('food'),
+            xml.string('color')
+        ])
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_dictionary_serialize_nested_missing_optional():
+    """Serializes nested dictionaries"""
+    value = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 27,
+            'gender': 'male',
+        },
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.dictionary('demographics', [
+            xml.integer('age'),
+            xml.string('gender')
+        ]),
+        xml.dictionary('favorites', [
+            xml.string('food'),
+            xml.string('color')
+        ], required=False)
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <name>John Doe</name>
+        <demographics>
+            <age>27</age>
+            <gender>male</gender>
+        </demographics>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_dictionary_serialize_nested_optional_present():
+    """Serializes nested dictionaries"""
+    value = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 27,
+            'gender': 'male',
+        },
+        'favorites': {
+            'movie': 'Monty Python'
+        }
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.dictionary('demographics', [
+            xml.integer('age'),
+            xml.string('gender')
+        ]),
+        xml.dictionary('favorites', [
+            xml.string('movie'),
+        ], required=False)
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <name>John Doe</name>
+        <demographics>
+            <age>27</age>
+            <gender>male</gender>
+        </demographics>
+        <favorites>
+            <movie>Monty Python</movie>
+        </favorites>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
 def test_primitive_serialize_aliased():
     """Serializes an aliased primitive value"""
     value = {

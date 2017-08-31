@@ -50,8 +50,6 @@ def serialize_xml_string(value, root_processor, indent=None):
         raise InvalidRootProcessor('Invalid root processor')
 
     root = root_processor.serialize(value)
-    if root is None:
-        return ''
 
     serialized = ET.tostring(root)
 
@@ -62,7 +60,7 @@ def serialize_xml_string(value, root_processor, indent=None):
     return serialized
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False):
+def array(item_processor, alias=None, nested=None):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -90,12 +88,10 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
         the array is treated as an embedded array.
-    :param omit_empty: If True, then empty lists will be omitted when serializing
-        array values to XML.
 
     :return: A declxml processor object.
     """
-    return _Array(item_processor, alias, nested, omit_empty)
+    return _Array(item_processor, alias, nested)
 
 
 def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False):
@@ -119,7 +115,7 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty)
 
 
-def dictionary(element_name, children, required=True, alias=None, omit_empty=False):
+def dictionary(element_name, children, required=True, alias=None):
     """
     Creates a processor for dictionary values.
 
@@ -129,12 +125,10 @@ def dictionary(element_name, children, required=True, alias=None, omit_empty=Fal
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
-    :param omit_empty: If True, the empty dictionary values will be omitted when serializing
-        to XML.
 
     :return: A declxml processor object.
     """
-    return _Dictionary(element_name, children, required, alias, omit_empty)
+    return _Dictionary(element_name, children, required, alias)
 
 
 def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False):
@@ -171,10 +165,9 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
 class _Array(object):
     """An XML processor object for Array values"""
 
-    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
+    def __init__(self, item_processor, alias=None, nested=None):
         self._item_processor = item_processor
         self._nested = nested
-        self.omit_empty = omit_empty
         self.required = item_processor.required
         if alias:
             self.alias = alias
@@ -225,9 +218,6 @@ class _Array(object):
             raise MissingValue('Missing required array: "{}"'.format(
                 self.alias))
 
-        if not value and self.omit_empty:
-            return None
-
         element = ET.Element(self._nested)
         self._serialize(element, value)
 
@@ -238,9 +228,6 @@ class _Array(object):
         if not value and self.required:
             raise MissingValue('Missing required array: "{}"'.format(
                 self.alias))
-
-        if not value and self.omit_empty:
-            return  # Do Nothing
 
         if self._nested is not None:
             array_parent = _element_get_or_add_from_parent(parent, self._nested)
@@ -274,18 +261,16 @@ class _Array(object):
 
         for item_value in value:
             item_element = self._item_processor.serialize(item_value)
-            if item_element is not None:
-                array_parent.append(item_element)
+            array_parent.append(item_element)
 
 
 class _Dictionary(object):
     """An XML processor object for dictionary values"""
 
-    def __init__(self, element_name, child_processors, required=True, alias=None, omit_empty=False):
+    def __init__(self, element_name, child_processors, required=True, alias=None):
         self.element_name = element_name
         self._child_processors = child_processors
         self.required = required
-        self.omit_empty = omit_empty
         if alias:
             self.alias = alias
         else:
@@ -328,9 +313,6 @@ class _Dictionary(object):
         if not value and self.required:
             raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
 
-        if not value and self.omit_empty:
-            return None
-
         element = ET.Element(self.element_name)
         self._serialize(element, value)
         return element
@@ -341,7 +323,7 @@ class _Dictionary(object):
             raise MissingValue('Missing required dictionary: "{}"'.format(
                 self.element_name))
 
-        if not value and self.omit_empty:
+        if not value:
             return  # Do Nothing
 
         element = _element_get_or_add_from_parent(parent, self.element_name)
@@ -349,9 +331,6 @@ class _Dictionary(object):
 
     def _serialize(self, element, value):
         """Serializes the dictionary appending all serialized children to the element"""
-        if value is None:
-            value = {}
-
         for child in self._child_processors:
             child_value = value.get(child.alias)
             child.serialize_on_parent(element, child_value)

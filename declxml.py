@@ -3,19 +3,19 @@ import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
-class XmlParseError(Exception):
+class XmlError(Exception):
     """Represents errors encountered when parsing XML data"""
 
 
-class InvalidPrimitiveValue(XmlParseError):
+class InvalidPrimitiveValue(XmlError):
     """Represents errors due to invalid primitive values"""
 
 
-class InvalidRootProcessor(XmlParseError):
+class InvalidRootProcessor(XmlError):
     """Represents errors due to an invalid root processor"""
 
 
-class MissingValue(XmlParseError):
+class MissingValue(XmlError):
     """Represents errors due to a missing required element"""
 
 

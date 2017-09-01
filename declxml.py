@@ -366,9 +366,8 @@ class _PrimitiveValue(object):
         # If a value is required, then it will never be ommitted when serialized. This
         # is to ensure that data that is serialized by a processor can also be parsed
         # by a processor. Omitting required values would lead to an error when attempting
-        # to parse the XML data. This only needs to be enforced for primitive values where
-        # a value must be None to be considered missing, but is considered empty if it is
-        # falsey.
+        # to parse the XML data. For primitives, a value must be None to be considered
+        # missing, but is considered empty if it is falsey.
         if required:
             self.omit_empty = False
             if omit_empty:
@@ -401,19 +400,15 @@ class _PrimitiveValue(object):
         Serializes the value into a new element object and returns the element. If the omit_empty
         option was specified and the value is falsey, then this will return None.
         """
-        # Note that falsey values are not treated as missing, but they may be omitted.
-        if value is None and self.required:
-            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
-
-        if not value and self.omit_empty:
-            return None
-
+        # For primitive values, this is only called when the value is part of an array,
+        # in which case we do not need to check for missing or omitted values.      
         element = ET.Element(self.element_name)
         self._serialize(element, value)
         return element
 
     def serialize_on_parent(self, parent, value):
         """Serializes the value adding it to the parent element"""
+        # Note that falsey values are not treated as missing, but they may be omitted.
         if value is None and self.required:
             raise MissingValue('Missing required value: "{}"'.format(self.element_name))
 

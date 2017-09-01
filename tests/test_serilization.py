@@ -6,8 +6,274 @@ import pytest
 from .. import declxml as xml
 
 
+def test_array_serialize_aggregate():
+    """Serialize an array of aggregate values"""
+    value = {
+        'people': [
+            {
+                'name': 'Bob',
+                'age': 27
+            },
+            {
+                'name': 'Jane',
+                'age': 25
+            }
+        ]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.array(xml.dictionary('person', [
+            xml.string('name'),
+            xml.integer('age')
+        ]), alias='people')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <person>
+            <name>Bob</name>
+            <age>27</age>
+        </person>
+        <person>
+            <name>Jane</name>
+            <age>25</age>
+        </person>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_array_of_arrays():
+    """Tests serializing arrays of arrays"""
+    value = {
+        'results': [
+            [3, 2 ,4],
+            [4, 3],
+            [12, 32, 87, 9],
+        ]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.array(xml.array(xml.integer('value'), nested='test-run'), alias='results')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <test-run>
+            <value>3</value>
+            <value>2</value>
+            <value>4</value>
+        </test-run>
+        <test-run>
+            <value>4</value>
+            <value>3</value>
+        </test-run>
+        <test-run>
+            <value>12</value>
+            <value>32</value>
+            <value>87</value>
+            <value>9</value>
+        </test-run>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_missing():
+    """Serialize a missing array"""
+    value = {
+        'message': 'Hello',
+        'data': []
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value'), alias='data')
+    ])
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_array_serialize_missing_optional():
+    """Serialize a missing array"""
+    value = {
+        'message': 'Hello',
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value', required=False), alias='data')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <message>Hello</message>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_missing_root():
+    """Serialize a missing array"""
+    value = []
+
+    processor = xml.array(xml.integer('value'), nested='data')
+
+    with pytest.raises(xml.MissingValue):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_array_serialize_nested():
+    """Tests serializing nested arrays"""
+    value = {
+        'date': '3-21',
+        'data-points': [
+            21.1,
+            1897.17,
+            13.1,
+        ]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('date'),
+        xml.array(xml.floating_point('value'), nested='data-points')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <date>3-21</date>
+        <data-points>
+            <value>21.1</value>
+            <value>1897.17</value>
+            <value>13.1</value>
+        </data-points>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_optinal_present():
+    """Serializes an optional array that is present"""
+    value = {
+        'message': 'Hello',
+        'value': [1, 14]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value', required=False))
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <message>Hello</message>
+        <value>1</value>
+        <value>14</value>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_primitive():
+    """Serialize an array of primitive values"""
+    value = {
+        'values': [14, 3, 17, 5]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.array(xml.integer('value'), alias='values')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <value>14</value>
+        <value>3</value>
+        <value>17</value>
+        <value>5</value>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_root():
+    """Serialize an array that is the root"""
+    value = [3.14, 13.7, 6.22]
+
+    processor = xml.array(xml.floating_point('constant'), nested='constants')
+
+    expected = _strip_xml("""
+    <constants>
+        <constant>3.14</constant>
+        <constant>13.7</constant>
+        <constant>6.22</constant>
+    </constants>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_array_serialize_root_not_nested():
+    """Serialize an array that is the root"""
+    value = [3.14, 13.7, 6.22]
+
+    processor = xml.array(xml.floating_point('constant'))
+
+    with pytest.raises(xml.InvalidRootProcessor):
+        xml.serialize_xml_string(value, processor)
+
+
+def test_array_serialize_shared_element():
+    """Serialize an array on an element shared with an attribute"""
+    value = {
+        'units': 'grams',
+        'results': [
+            32.4,
+            3.11
+        ]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('results', attribute='units'),
+        xml.array(xml.floating_point('value'), nested='results')
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <results units="grams">
+            <value>32.4</value>
+            <value>3.11</value>
+        </results>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
 def test_attribute_serialize():
-    """serializing an attribute value"""
+    """Serialize an attribute value"""
     value = {
         'value': 'Hello, World'
     }
@@ -399,6 +665,44 @@ def test_dictionary_serialize_nested_optional_present():
     assert expected == actual
 
 
+def test_dictionary_serialize_shared_element():
+    """Serialize a dictionary to an element shared with an attribute value"""
+    value = {
+        'gender': 'male',
+        'person': {
+            'name': 'Bob',
+            'age': 27
+        }
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('person', attribute='gender'),
+        xml.dictionary('person', [
+            xml.string('name'),
+            xml.integer('age')
+        ])
+    ])
+
+    expected = _strip_xml("""
+    <root>
+        <person gender="male">
+            <name>Bob</name>
+            <age>27</age>
+        </person>
+    </root>
+    """)
+
+    actual = xml.serialize_xml_string(value, processor)
+
+    assert expected == actual
+
+
+def test_primitive_omit_empty_and_required():
+    """Create a processor with both required and omit empty specified"""
+    with pytest.warns(UserWarning):
+        xml.integer('value', required=True, omit_empty=True)
+
+
 def test_primitive_serialize_aliased():
     """Serializes an aliased primitive value"""
     value = {
@@ -499,6 +803,16 @@ def test_primitive_serialize_missing_omitted():
     assert expected == actual
 
 
+def test_primitive_serialize_root():
+    """Serialize a primitive value as the root of the document"""
+    value = 'Hello'
+
+    processor = xml.string('message')
+
+    with pytest.raises(xml.InvalidRootProcessor):
+        xml.serialize_xml_string(value, processor)
+
+
 def test_primitive_values_serialize_falsey():
     """Serialize false primitive values"""
     value = {
@@ -584,8 +898,32 @@ def test_primitive_values_serialize():
     assert expected == actual
 
 
+def test_serialize_pretty():
+    """Serialize a pretty-formatted XML string"""
+    value = {
+        'name': 'Bob',
+        'age': 27
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('name'),
+        xml.integer('age')
+    ])
+
+    expected = """<?xml version="1.0" ?>
+<root>
+    <name>Bob</name>
+    <age>27</age>
+</root>
+"""
+
+    actual = xml.serialize_xml_string(value, processor, indent='    ')
+
+    assert expected == actual
+
+
 def _strip_xml(xml_string):
-    """Prepares the XML string so it can be compared to the actual serialized output""" 
+    """Prepares the XML string so it can be compared to the actual serialized output"""
     # Strip internal whitespace between tags
     stripped = re.sub(r'>\s+<', '><', xml_string)
 

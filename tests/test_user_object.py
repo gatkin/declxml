@@ -1,5 +1,5 @@
 """Contains unit tests for user object processors"""
-from .. import declxml as xml
+import declxml.declxml as xml
 from .helpers import strip_xml
 
 

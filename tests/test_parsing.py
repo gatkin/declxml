@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from .. import declxml as xml
+import declxml.declxml as xml
 
 
 def test_parse_array_embedded():

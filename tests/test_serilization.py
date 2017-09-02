@@ -1,7 +1,7 @@
 """Contains unit tests for serialization logic"""
 import pytest
 
-from .. import declxml as xml
+import declxml.declxml as xml
 from .helpers import strip_xml
 
 

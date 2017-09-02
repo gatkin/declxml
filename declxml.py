@@ -162,8 +162,24 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     return _PrimitiveValue(element_name, parser, attribute, required, alias, default, omit_empty)
 
 
+def user_object(element_name, cls, child_processors, required=True, alias=None):
+    """
+    Creates a processor for user objects.
+
+    :param element_name: Name of the XML element containing the object data
+    :param cls: Class object with a no-argument constructor or other callable no-argument object
+        which returns a newly constructed object into which parsed values will be read.
+    :param child_processors: List of declxml processor objects for processing the children
+        contained within the user object.
+    :param required: Indicates whether the value is required when parsing and serializing.
+    :param alias: If specified, then this is used as the name of the value when read from
+        XML. If not specified, then the element_name is used as the name of the value.
+    """
+    return _UserObject(element_name, cls, child_processors, required, alias)
+
+
 class _Array(object):
-    """An XML processor object for Array values"""
+    """An XML processor for Array values"""
 
     def __init__(self, item_processor, alias=None, nested=None):
         self._item_processor = item_processor
@@ -206,9 +222,7 @@ class _Array(object):
 
     def serialize(self, value):
         """
-        Serializes the value into a new Element object and returns it. If the
-        value is an empty list, and the processor has been configured with the
-        omit_empty option specified, then this will return None.
+        Serializes the value into a new Element object and returns it.
         """
         if self._nested is None:
             raise InvalidRootProcessor('Cannot directly serialize a non-nested array: {}'.format(
@@ -265,7 +279,7 @@ class _Array(object):
 
 
 class _Dictionary(object):
-    """An XML processor object for dictionary values"""
+    """An XML processor for dictionary values"""
 
     def __init__(self, element_name, child_processors, required=True, alias=None):
         self.element_name = element_name
@@ -306,9 +320,7 @@ class _Dictionary(object):
 
     def serialize(self, value):
         """
-        Serializes the value to a new element and returns the element. If omit_empty
-        was specified and the value is an empty dictionary, then this will return
-        None.
+        Serializes the value to a new element and returns the element.
         """
         if not value and self.required:
             raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
@@ -337,7 +349,7 @@ class _Dictionary(object):
 
 
 class _PrimitiveValue(object):
-    """An XML processor object for processing primitive values"""
+    """An XML processor for processing primitive values"""
 
     def __init__(self, element_name, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False):
         """
@@ -444,6 +456,53 @@ class _PrimitiveValue(object):
             element.set(self._attribute, serialized_value)
         else:
             element.text = serialized_value
+
+
+class _UserObject(object):
+    """An XML processor for processing user-defined class instances"""
+
+    def __init__(self, element_name, cls, child_processors, required=True, alias=None):
+        self.element_name = element_name
+        self.required = required
+        self._cls = cls
+        self._dictionary = _Dictionary(element_name, child_processors, required, alias)
+        if alias:
+            self.alias = alias
+        else:
+            self.alias = element_name
+
+    def parse_at_element(self, element):
+        """Parses the provided element as a user object"""
+        parsed_dict = self._dictionary.parse_at_element(element)
+        return self._dict_to_user_object(parsed_dict)
+
+    def parse_at_root(self, root):
+        """Parses the root XML element as a user object"""
+        parsed_dict = self._dictionary.parse_at_root(root)
+        return self._dict_to_user_object(parsed_dict)
+
+    def parse_from_parent(self, parent):
+        """Parses the user object data from the provided parent XML element"""
+        parsed_dict = self._dictionary.parse_from_parent(parent)
+        return self._dict_to_user_object(parsed_dict)
+
+    def serialize(self, value):
+        """
+        Serializes the value to a new element and returns the element.
+        """
+        return self._dictionary.serialize(value.__dict__)
+
+    def serialize_on_parent(self, parent, value):
+        """Serializes the value and adds it to the parent"""
+        self._dictionary.serialize_on_parent(parent, value.__dict__)
+
+    def _dict_to_user_object(self, dict_value):
+        """Converts the dictionary value to an instance of the user object"""
+        value = self._cls()
+        for field_name, field_value in dict_value.items():
+            setattr(value, field_name, field_value)
+
+        return value
 
 
 def _element_get_or_add_from_parent(parent, element_name):

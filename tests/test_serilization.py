@@ -41,7 +41,7 @@ def test_array_serialize_aggregate():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -80,7 +80,7 @@ def test_array_serialize_array_of_arrays():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -98,7 +98,7 @@ def test_array_serialize_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_array_serialize_missing_optional():
@@ -118,7 +118,7 @@ def test_array_serialize_missing_optional():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -130,7 +130,7 @@ def test_array_serialize_missing_root():
     processor = xml.array(xml.integer('value'), nested='data')
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_array_serialize_nested():
@@ -160,7 +160,7 @@ def test_array_serialize_nested():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -185,7 +185,7 @@ def test_array_serialize_optinal_present():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -209,7 +209,7 @@ def test_array_serialize_primitive():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -228,7 +228,7 @@ def test_array_serialize_root():
     </constants>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -240,7 +240,7 @@ def test_array_serialize_root_not_nested():
     processor = xml.array(xml.floating_point('constant'))
 
     with pytest.raises(xml.InvalidRootProcessor):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_array_serialize_shared_element():
@@ -267,7 +267,7 @@ def test_array_serialize_shared_element():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -288,7 +288,7 @@ def test_attribute_serialize():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -309,7 +309,7 @@ def test_attribute_serialize_aliased():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -331,7 +331,7 @@ def test_attribute_serialize_default_missing():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -354,7 +354,7 @@ def test_attribute_serialize_default_present():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -377,7 +377,7 @@ def test_attribute_serialize_falsey():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -400,7 +400,7 @@ def test_attribute_serialize_falsey_omitted():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -417,7 +417,7 @@ def test_attribute_serialize_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_attribute_serialize_missing_empty():
@@ -437,7 +437,7 @@ def test_attribute_serialize_missing_empty():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -465,7 +465,7 @@ def test_attribute_serialize_multiple():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -479,7 +479,7 @@ def test_dictionary_serialize_root_empty():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_dictionary_serialize_nested():
@@ -522,7 +522,7 @@ def test_dictionary_serialize_nested():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -555,7 +555,7 @@ def test_dictionary_serialize_nested_aliased():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -583,7 +583,7 @@ def test_dictionary_serialize_nested_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_dictionary_serialize_nested_missing_optional():
@@ -618,7 +618,7 @@ def test_dictionary_serialize_nested_missing_optional():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -660,7 +660,7 @@ def test_dictionary_serialize_nested_optional_present():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -692,7 +692,7 @@ def test_dictionary_serialize_shared_element():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -719,7 +719,7 @@ def test_primitive_serialize_aliased():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -740,7 +740,7 @@ def test_primitive_serialize_default_missing():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -761,7 +761,7 @@ def test_primitive_serialize_default_present():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -778,7 +778,7 @@ def test_primitive_serialize_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_primitive_serialize_missing_omitted():
@@ -798,7 +798,7 @@ def test_primitive_serialize_missing_omitted():
     </root>  
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -810,7 +810,7 @@ def test_primitive_serialize_root():
     processor = xml.string('message')
 
     with pytest.raises(xml.InvalidRootProcessor):
-        xml.serialize_xml_string(value, processor)
+        xml.serialize_xml_string(processor, value)
 
 
 def test_primitive_values_serialize_falsey():
@@ -838,7 +838,7 @@ def test_primitive_values_serialize_falsey():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -863,7 +863,7 @@ def test_primitive_values_serialize_falsey_omitted():
     <root />  
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -893,7 +893,7 @@ def test_primitive_values_serialize():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(value, processor)
+    actual = xml.serialize_xml_string(processor, value)
 
     assert expected == actual
 
@@ -917,7 +917,7 @@ def test_serialize_pretty():
 </root>
 """
 
-    actual = xml.serialize_xml_string(value, processor, indent='    ')
+    actual = xml.serialize_xml_string(processor, value, indent='    ')
 
     assert expected == actual
 

@@ -30,7 +30,7 @@ def test_parse_array_embedded():
         'value': [21, 17, 90, 6],
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -57,7 +57,7 @@ def test_parse_array_embedded_aliased():
         'numbers': [765, 3456],
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -78,7 +78,7 @@ def test_parse_array_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_array_missing_optional():
@@ -101,7 +101,7 @@ def test_parse_array_missing_optional():
         'numbers': [],
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -130,7 +130,7 @@ def test_parse_array_nested():
         'numbers': [1, 2],
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -159,7 +159,7 @@ def test_parse_array_of_arrays():
         [99],
     ]
 
-    actual = xml.parse_xml_string(xml_string, root_processor)
+    actual = xml.parse_xml_string(root_processor, xml_string)
 
     assert expected == actual
 
@@ -197,7 +197,7 @@ def test_parse_array_of_dicts():
         },
     ]
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -216,7 +216,7 @@ def test_parse_array_of_primitives():
 
     expected = [1, 2, 3]
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -243,7 +243,7 @@ def test_parse_array_optional_present():
         'numbers': [45, 908],
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -260,7 +260,7 @@ def test_parse_array_root_missing():
     processor = xml.array(xml.integer('value'), nested='array')
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_array_root_non_nested():
@@ -275,7 +275,7 @@ def test_parse_array_root_non_nested():
     processor = xml.array(xml.integer('value'))
 
     with pytest.raises(xml.InvalidRootProcessor):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_array_root_optional():
@@ -291,7 +291,7 @@ def test_parse_array_root_optional():
 
     expected = []
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -309,7 +309,7 @@ def test_parse_array_root_optional_present():
 
     expected = [1, 2]
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -330,7 +330,7 @@ def test_parse_attribute():
         'value': 'hello',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -351,7 +351,7 @@ def test_parse_attribute_aliased():
         'value_alias': 'hello',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -372,7 +372,7 @@ def test_parse_attribute_default():
         'value': 'Goodbye',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -393,7 +393,7 @@ def test_parse_attribute_default_present():
         'value': 'Hello',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -411,7 +411,7 @@ def test_parse_attribute_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_attribute_missing_element():
@@ -427,7 +427,7 @@ def test_parse_attribute_missing_element():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_attribute_only():
@@ -446,7 +446,7 @@ def test_parse_attribute_only():
         'value': 'hello',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -464,7 +464,7 @@ def test_parse_boolean_invalid():
     ])
 
     with pytest.raises(xml.InvalidPrimitiveValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_dictionary_aliased():
@@ -498,7 +498,7 @@ def test_parse_dictionary_aliased():
         },
     }
 
-    actual = xml.parse_xml_string(xml_string, person)
+    actual = xml.parse_xml_string(person, xml_string)
 
     assert expected == actual
 
@@ -533,7 +533,7 @@ def test_parse_dictionary_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, person)
+        xml.parse_xml_string(person, xml_string)
 
 
 def test_parse_dictionary_missing_optional():
@@ -574,7 +574,7 @@ def test_parse_dictionary_missing_optional():
         'address': {},
     }
 
-    actual = xml.parse_xml_string(xml_string, person)
+    actual = xml.parse_xml_string(person, xml_string)
 
     assert expected == actual
 
@@ -626,7 +626,7 @@ def test_parse_dictionary_nested():
         },
     }
 
-    actual = xml.parse_xml_string(xml_string, person)
+    actual = xml.parse_xml_string(person, xml_string)
 
     assert expected == actual
 
@@ -644,7 +644,7 @@ def test_parse_dictionary_root_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_dictionary_root_optional():
@@ -661,7 +661,7 @@ def test_parse_dictionary_root_optional():
 
     expected = {}
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -679,7 +679,7 @@ def test_parse_float_invalid():
     ])
 
     with pytest.raises(xml.InvalidPrimitiveValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_int_invalid():
@@ -695,7 +695,7 @@ def test_parse_int_invalid():
     ])
 
     with pytest.raises(xml.InvalidPrimitiveValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_primitive():
@@ -723,7 +723,7 @@ def test_parse_primitive():
         'string': 'Hello, World',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -753,7 +753,7 @@ def test_parse_primitive_aliased():
         's': 'Hello, World',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -779,7 +779,7 @@ def test_primitive_default():
         'string': '',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -809,7 +809,7 @@ def test_primitive_default_present():
         'string': 'Hello, World',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -827,7 +827,7 @@ def test_parse_primitive_missing():
     ])
 
     with pytest.raises(xml.MissingValue):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_primitive_root_parser():
@@ -839,7 +839,7 @@ def test_parse_primitive_root_parser():
     processor = xml.integer('root')
 
     with pytest.raises(xml.InvalidRootProcessor):
-        xml.parse_xml_string(xml_string, processor)
+        xml.parse_xml_string(processor, xml_string)
 
 
 def test_parse_string_leave_whitespace():
@@ -858,7 +858,7 @@ def test_parse_string_leave_whitespace():
         'value': '    Hello, World! ',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -879,7 +879,7 @@ def test_parse_string_strip_whitespace():
         'value': 'Hello, World!',
     }
 
-    actual = xml.parse_xml_string(xml_string, processor)
+    actual = xml.parse_xml_string(processor, xml_string)
 
     assert expected == actual
 
@@ -904,6 +904,6 @@ def test_parse_xml_file(tmpdir):
         'value': 27,
     }
 
-    actual = xml.parse_xml_file(xml_path, processor)
+    actual = xml.parse_xml_file(processor, xml_path)
 
     assert expected == actual

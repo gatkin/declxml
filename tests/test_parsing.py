@@ -698,6 +698,39 @@ def test_parse_int_invalid():
         xml.parse_xml_string(processor, xml_string)
 
 
+def test_parse_namespace():
+    """Parses an xml document with a namespace"""
+    xml_string = """
+    <root xmlns="http://www.w3.org/1999/xhtml">
+        <message>Hello</message>
+        <values>
+            <int>321</int>
+            <float>3.14</float>
+        </values>
+    </root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.dictionary('values', [
+            xml.integer('int'),
+            xml.floating_point('float')
+        ])
+    ])
+
+    expected = {
+        'message': 'Hello',
+        'values': {
+            'int': 321,
+            'float': 3.14
+        }
+    }
+
+    actual = xml.parse_xml_string(processor, xml_string)
+
+    assert expected == actual
+
+
 def test_parse_primitive():
     """Parse primitve XML values"""
     xml_string = """

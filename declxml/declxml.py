@@ -61,6 +61,8 @@ def parse_xml_string(root_processor, xml_string):
         raise InvalidRootProcessor('Invalid root processor')
 
     root = ET.fromstring(xml_string)
+    _xml_namespace_strip(root)
+
     return root_processor.parse_at_root(root)
 
 
@@ -599,3 +601,13 @@ def _parse_string(strip_whitespace):
         return value
 
     return _parse_string_value
+
+
+def _xml_namespace_strip(root):
+    """Strips the XML namespace prefix from all element tags under the given root Element"""
+    if '}' not in root.tag:
+        return  # Nothing to do, no namespace present
+
+    for element in root.iter():
+        if '}' in element.tag:
+            element.tag = element.tag.split('}')[1]

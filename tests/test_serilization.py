@@ -1,9 +1,8 @@
 """Contains unit tests for serialization logic"""
-import re
-
 import pytest
 
 from .. import declxml as xml
+from .helpers import strip_xml
 
 
 def test_array_serialize_aggregate():
@@ -28,7 +27,7 @@ def test_array_serialize_aggregate():
         ]), alias='people')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <person>
             <name>Bob</name>
@@ -60,7 +59,7 @@ def test_array_serialize_array_of_arrays():
         xml.array(xml.array(xml.integer('value'), nested='test-run'), alias='results')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <test-run>
             <value>3</value>
@@ -112,7 +111,7 @@ def test_array_serialize_missing_optional():
         xml.array(xml.integer('value', required=False), alias='data')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <message>Hello</message>
     </root>
@@ -149,7 +148,7 @@ def test_array_serialize_nested():
         xml.array(xml.floating_point('value'), nested='data-points')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <date>3-21</date>
         <data-points>
@@ -177,7 +176,7 @@ def test_array_serialize_optinal_present():
         xml.array(xml.integer('value', required=False))
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <message>Hello</message>
         <value>1</value>
@@ -200,7 +199,7 @@ def test_array_serialize_primitive():
         xml.array(xml.integer('value'), alias='values')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <value>14</value>
         <value>3</value>
@@ -220,7 +219,7 @@ def test_array_serialize_root():
 
     processor = xml.array(xml.floating_point('constant'), nested='constants')
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <constants>
         <constant>3.14</constant>
         <constant>13.7</constant>
@@ -258,7 +257,7 @@ def test_array_serialize_shared_element():
         xml.array(xml.floating_point('value'), nested='results')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <results units="grams">
             <value>32.4</value>
@@ -282,7 +281,7 @@ def test_attribute_serialize():
         xml.string('element', attribute='value')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <element value="Hello, World" />
     </root>
@@ -303,7 +302,7 @@ def test_attribute_serialize_aliased():
         xml.floating_point('constant', attribute='value', alias='pi'),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <constant value="3.14" />
     </root>
@@ -325,7 +324,7 @@ def test_attribute_serialize_default_missing():
         xml.string('data', attribute='units', required=False, default='feet')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data units="feet">123</data>
     </root>
@@ -348,7 +347,7 @@ def test_attribute_serialize_default_present():
         xml.string('data', attribute='units', required=False, default='feet')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data units="miles">123</data>
     </root>
@@ -371,7 +370,7 @@ def test_attribute_serialize_falsey():
         xml.string('data', attribute='message', required=False)
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data message="">123</data>
     </root>
@@ -394,7 +393,7 @@ def test_attribute_serialize_falsey_omitted():
         xml.string('data', attribute='message', required=False, omit_empty=True)
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data>123</data>
     </root>
@@ -431,7 +430,7 @@ def test_attribute_serialize_missing_empty():
         xml.string('data', attribute='message', required=False, omit_empty=True)
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data>123</data>
     </root>
@@ -458,7 +457,7 @@ def test_attribute_serialize_multiple():
         xml.string('message')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data attribute_a="Hello, World" attribute_b="True">1</data>
         <message>Hello, World</message> 
@@ -508,7 +507,7 @@ def test_dictionary_serialize_nested():
         ])
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <name>John Doe</name>
         <demographics>
@@ -545,7 +544,7 @@ def test_dictionary_serialize_nested_aliased():
         ], alias='stats')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <name>John Doe</name>
         <demographics>
@@ -608,7 +607,7 @@ def test_dictionary_serialize_nested_missing_optional():
         ], required=False)
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <name>John Doe</name>
         <demographics>
@@ -647,7 +646,7 @@ def test_dictionary_serialize_nested_optional_present():
         ], required=False)
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <name>John Doe</name>
         <demographics>
@@ -683,7 +682,7 @@ def test_dictionary_serialize_shared_element():
         ])
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <person gender="male">
             <name>Bob</name>
@@ -713,7 +712,7 @@ def test_primitive_serialize_aliased():
         xml.integer('element', alias='data'),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <element>456</element>
     </root>
@@ -734,7 +733,7 @@ def test_primitive_serialize_default_missing():
         xml.string('message', required=False, default='Hello, World'),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <message>Hello, World</message>
     </root>
@@ -755,7 +754,7 @@ def test_primitive_serialize_default_present():
         xml.string('message', required=False, default='Hello, World'),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <message>Hola, Mars</message>
     </root>
@@ -792,7 +791,7 @@ def test_primitive_serialize_missing_omitted():
         xml.integer('data')
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>
         <data>1</data>
     </root>  
@@ -829,7 +828,7 @@ def test_primitive_values_serialize_falsey():
         xml.string('string', required=False),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>  
         <boolean>False</boolean>
         <float>0.0</float>
@@ -859,7 +858,7 @@ def test_primitive_values_serialize_falsey_omitted():
         xml.string('string', required=False, omit_empty=True),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root />  
     """)
 
@@ -884,7 +883,7 @@ def test_primitive_values_serialize():
         xml.string('string'),
     ])
 
-    expected = _strip_xml("""
+    expected = strip_xml("""
     <root>  
         <boolean>True</boolean>
         <float>3.14</float>
@@ -920,12 +919,3 @@ def test_serialize_pretty():
     actual = xml.serialize_xml_string(processor, value, indent='    ')
 
     assert expected == actual
-
-
-def _strip_xml(xml_string):
-    """Prepares the XML string so it can be compared to the actual serialized output"""
-    # Strip internal whitespace between tags
-    stripped = re.sub(r'>\s+<', '><', xml_string)
-
-    # Strip external whitespace
-    return stripped.strip().encode('utf8')

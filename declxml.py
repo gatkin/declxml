@@ -3,6 +3,7 @@ import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
+
 class XmlError(Exception):
     """Represents errors encountered when parsing XML data"""
 
@@ -65,8 +66,11 @@ def array(item_processor, alias=None, nested=None):
     Creates an array processor that can be used to parse and serialize array
     data.
 
-    XML arrays may be nested or they may be embedded within their parent.
-    A nested array would look like:
+    XML arrays may be nested within an array element, or they may be embedded
+    within their parent. A nested array would look like:
+
+    .. sourcecode:: xml
+
         <root-element>
             <some-element>ABC</some-element>
             <nested-array>
@@ -76,11 +80,15 @@ def array(item_processor, alias=None, nested=None):
         </root-element>
 
     The corresponding embedded array would look like:
-		<root-element>
+
+    .. sourcecode:: xml
+
+        <root-element>
             <some-element>ABC</some-element>
             <array-item>0</array-item>
             <array-item>1</array-item>
         </root-element>
+
 
     :param item_processor: A declxml processor object for the items of the array.
     :param alias: If specified, the name given to the array when read from XML.
@@ -135,7 +143,7 @@ def floating_point(element_name, attribute=None, required=True, alias=None, defa
     """
     Creates a processor for floating point values.
 
-    .. seealso:: boolean()
+    See also :func:`declxml.boolean`
     """
     return _PrimitiveValue(element_name, _parse_float, attribute, required, alias, default, omit_empty)
 
@@ -144,7 +152,7 @@ def integer(element_name, attribute=None, required=True, alias=None, default=0, 
     """
     Creates a processor for integer values.
 
-    .. seealso:: boolean()
+    See also :func:`declxml.boolean`
     """
     return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default, omit_empty)
 
@@ -156,7 +164,7 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     :param strip_whitespace: Indicates whether leading and trailing whitespace should be stripped
         from parsed string values.
 
-    .. seealso:: boolean()
+    See also :func:`declxml.boolean`
     """
     parser = _parse_string(strip_whitespace)
     return _PrimitiveValue(element_name, parser, attribute, required, alias, default, omit_empty)
@@ -166,14 +174,9 @@ def user_object(element_name, cls, child_processors, required=True, alias=None):
     """
     Creates a processor for user objects.
 
-    :param element_name: Name of the XML element containing the object data
-    :param cls: Class object with a no-argument constructor or other callable no-argument object
-        which returns a newly constructed object into which parsed values will be read.
-    :param child_processors: List of declxml processor objects for processing the children
-        contained within the user object.
-    :param required: Indicates whether the value is required when parsing and serializing.
-    :param alias: If specified, then this is used as the name of the value when read from
-        XML. If not specified, then the element_name is used as the name of the value.
+    :param cls: Class object with a no-argument constructor or other callable no-argument object.
+
+    See also :func:`declxml.dictionary`
     """
     return _UserObject(element_name, cls, child_processors, required, alias)
 
@@ -534,7 +537,7 @@ def _parse_boolean(element_text):
     elif lowered_text == 'false':
         value = False
     else:
-        raise InvalidPrimitiveValue('Invalid boolean value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid boolean value: "{}"'.format(element_text))
 
     return value
 
@@ -544,7 +547,7 @@ def _parse_float(element_text):
     try:
         value = float(element_text)
     except ValueError:
-        raise InvalidPrimitiveValue('Invalid float value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid float value: "{}"'.format(element_text))
 
     return value
 
@@ -554,9 +557,10 @@ def _parse_int(element_text):
     try:
         value = int(element_text)
     except ValueError:
-        raise InvalidPrimitiveValue('Invalid integer value: {}'.format(element_text))
+        raise InvalidPrimitiveValue('Invalid integer value: "{}"'.format(element_text))
 
     return value
+
 
 def _parse_string(strip_whitespace):
     """Returns a parser function for parsing string values"""

@@ -1,6 +1,14 @@
 """Contains unit tests for user object processors"""
+from collections import namedtuple
+
+import pytest
+
 import declxml.declxml as xml
 from .helpers import strip_xml
+
+
+Author = namedtuple('Author', ['name', 'books'])
+Book = namedtuple('Book', ['title', 'year_published'])
 
 
 class Person(object):
@@ -30,7 +38,101 @@ class Person(object):
             self.name, self.age, self.gender, self.pets)
 
 
-def test_parse_aliased():
+def test_named_tuple_parse():
+    """Parse a namedtuple value"""
+    xml_string = """
+    <author>
+        <name>Robert A. Heinlein</name>
+        <book>
+            <title>Starship Troopers</title>
+            <year-published>1959</year-published>
+        </book>
+        <book>
+            <title>Stranger in a Strange Land</title>
+            <year-published>1961</year-published>
+        </book>
+    </author>
+    """
+
+    processor = xml.named_tuple('author', Author, [
+        xml.string('name'),
+        xml.array(xml.named_tuple('book', Book, [
+            xml.string('title'),
+            xml.integer('year-published', alias='year_published')
+        ]), alias='books')
+    ])
+
+    expected = Author(name='Robert A. Heinlein', books=[
+        Book(title='Starship Troopers', year_published=1959),
+        Book(title='Stranger in a Strange Land', year_published=1961)
+    ])
+
+    actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
+
+
+def test_named_tuple_parse_missing_field():
+    """Tests attempting to a parse a named tuple with fields missing from the processor"""
+    xml_string = """
+    <author>
+        <name>Robert A. Heinlein</name>
+        <book>
+            <title>Starship Troopers</title>
+            <year-published>1959</year-published>
+        </book>
+        <book>
+            <title>Stranger in a Strange Land</title>
+            <year-published>1961</year-published>
+        </book>
+    </author>
+    """
+
+    # User forgot to specify processor for namedtuple's books field which
+    # should lead to an error when attempting to create the named tuple value.
+    processor = xml.named_tuple('author', Author, [
+        xml.string('name')
+    ])
+
+    with pytest.raises(TypeError):
+        xml.parse_from_string(processor, xml_string)
+
+
+def test_named_tuple_serialize():
+    """Serialize a namedtuple value"""
+    value = Author(name='Robert A. Heinlein', books=[
+        Book(title='Starship Troopers', year_published=1959),
+        Book(title='Stranger in a Strange Land', year_published=1961)
+    ])
+
+    processor = xml.named_tuple('author', Author, [
+        xml.string('name'),
+        xml.array(xml.named_tuple('book', Book, [
+            xml.string('title'),
+            xml.integer('year-published', alias='year_published')
+        ]), alias='books')
+    ])
+
+    expected = strip_xml("""
+    <author>
+        <name>Robert A. Heinlein</name>
+        <book>
+            <title>Starship Troopers</title>
+            <year-published>1959</year-published>
+        </book>
+        <book>
+            <title>Stranger in a Strange Land</title>
+            <year-published>1961</year-published>
+        </book>
+    </author>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_user_object_parse_aliased():
     """Parse an aliased user object"""
     xml_string = """
     <root>
@@ -60,7 +162,7 @@ def test_parse_aliased():
     assert expected == actual
 
 
-def test_parse_array():
+def test_user_object_parse_array():
     """Parse a user object in an array"""
     xml_string = """
     <root>
@@ -97,7 +199,7 @@ def test_parse_array():
     assert expected == actual
 
 
-def test_parse_nested():
+def test_user_object_parse_nested():
     """Parse a user object as a nested element in the document"""
     xml_string = """
     <root>
@@ -128,7 +230,7 @@ def test_parse_nested():
     assert expected == actual
 
 
-def test_parse_root():
+def test_user_object_parse_root():
     """Parse a user object as the root of the document"""
     xml_string = """
     <person>
@@ -151,7 +253,7 @@ def test_parse_root():
     assert expected == actual
 
 
-def test_serialize_aliased():
+def test_user_object_serialize_aliased():
     """Serializes an aliased user object"""
     value = {
         'book': 'Harry Potter',
@@ -181,7 +283,7 @@ def test_serialize_aliased():
     assert expected == actual
 
 
-def test_serialize_array():
+def test_user_object_serialize_array():
     """Serializes an array of user objects"""
     value = [
         Person().set_values(name='Bob', age=33),
@@ -216,7 +318,7 @@ def test_serialize_array():
     assert expected == actual
 
 
-def test_serialize_nested():
+def test_user_object_serialize_nested():
     """Serializes a nested user object"""
     value = {
         'position': 'quarterback',
@@ -247,7 +349,7 @@ def test_serialize_nested():
     assert expected == actual
 
 
-def test_serialize_root():
+def test_user_object_serialize_root():
     """Serializes a user object as the root of the document"""
     value = Person().set_values(name='Bob', age=27, gender='male')
 

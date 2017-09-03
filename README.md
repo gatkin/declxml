@@ -1,9 +1,9 @@
 # declxml - Declarative XML Processing
 [![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
 [![codecov](https://codecov.io/gh/gatkin/declxml/branch/master/graph/badge.svg)](https://codecov.io/gh/gatkin/declxml)
-[![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/hug/)
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/declxml/)
 
-XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperitive serialization and parsing logic. With declxml, you declaratively define the structure of your XML docuement and let declxml handle all serialization and parsing for you.
+XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperitive serialization and parsing logic. With declxml, you declaratively define the structure of your XML docuement and let declxml handle the rest.
 
 ## Installation
 ```
@@ -154,4 +154,29 @@ author_processor = xml.user_object('author', Author, [
 
 xml.parse_from_string(author_processor, author_xml)
 # Author(name=Robert A. Heinlein, birth_year=1907, books=[Book(title=Starship Troopers, published=1950), Book(title=Stranger in a Strange Land, published=1951)])
+```
+
+What about namedtuples, you say? Those are extremely useful, and declxml lets you work with them as well
+```python
+from collections import namedtuple
+
+import declxml as xml
+
+
+Author = namedtuple('Author', ['name', 'birth_year', 'books'])
+Book = namedtuple('Book', ['title', 'published'])
+
+
+author_processor = xml.named_tuple('author', Author, [
+    xml.string('name'),
+    xml.integer('birth-year', alias='birth_year'),
+    xml.array(xml.named_tuple('book', Book, [
+        xml.string('title'),
+        xml.integer('published')
+    ]), alias='books')
+])
+
+
+xml.parse_from_string(author_processor, author_xml)
+# Author(name='Robert A. Heinlein', birth_year=1907, books=[Book(title='Starship Troopers', published=1959), Book(title='Stranger in a Strange Land', published=1961)])
 ```

@@ -232,6 +232,18 @@ def integer(element_name, attribute=None, required=True, alias=None, default=0, 
     return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default, omit_empty)
 
 
+def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None):
+    """
+    Creates a processor for namedtuple values.
+
+    :param tuple_type: The namedtuple type.
+
+    See also :func:`declxml.dictionary`
+    """
+    converter = _named_tuple_converter(tuple_type)
+    return _Aggregate(element_name, converter, child_processors, required, alias)
+
+
 def string(element_name, attribute=None, required=True, alias=None, default='', strip_whitespace=True, omit_empty=False):
     """
     Creates a processor for integer values.
@@ -607,6 +619,18 @@ def _element_get_or_add_from_parent(parent, element_name):
     return element
 
 
+def _named_tuple_converter(tuple_type):
+    """Returns an _AggregateConverter for named tuples of the given type"""
+    def _from_dict(dict_value):
+        return tuple_type(**dict_value)
+
+    def _to_dict(value):
+        return value._asdict()
+
+    converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
+    return converter
+
+
 def _is_valid_root_processor(processor):
     """Returns True if the given XML processor can be used as a root processor"""
     return hasattr(processor, 'parse_at_root')
@@ -662,10 +686,10 @@ def _parse_string(strip_whitespace):
 
 def _user_object_converter(cls):
     """Returns an _AggregateConverter for a user object of the given class"""
-    def _from_dict(value):
+    def _from_dict(dict_value):
         object_value = cls()
 
-        for field_name, field_value in value.items():
+        for field_name, field_value in dict_value.items():
             setattr(object_value, field_name, field_value)
 
         return object_value
@@ -674,7 +698,6 @@ def _user_object_converter(cls):
         return value.__dict__
 
     converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
-
     return converter
 
 

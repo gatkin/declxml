@@ -46,17 +46,31 @@ class MissingValue(XmlError):
     """Represents errors due to a missing required element"""
 
 
-def parse_from_file(root_proccesor, xml_file_path):
-    """Parses the XML file using the processor as the root of the document"""
-    with open(xml_file_path) as xml_file:
-        xml_string = xml_file.read()
-        parsed = parse_from_string(root_proccesor, xml_string)
+def parse_from_file(root_processor, xml_file_path):
+    """
+    Parses the XML file using the processor starting from the root of the document.
 
-    return parsed
+    :param root_processor: Root processor of the XML document.
+    :param xml_file_path: Path to XML file to parse.
+
+    :return: Parsed value.
+    """
+    with open(xml_file_path, 'rb') as xml_file:
+        xml_string = xml_file.read()
+
+    parsed_value = parse_from_string(root_processor, xml_string)
+
+    return parsed_value
 
 
 def parse_from_string(root_processor, xml_string):
-    """Parses the XML string using the processor as the root of the document."""
+    """
+    Parses the XML string using the processor starting from the root of the document.
+
+    :param xml_string: XML string to parse.
+
+    See also :func:`declxml.parse_from_file`
+    """
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
@@ -66,27 +80,41 @@ def parse_from_string(root_processor, xml_string):
     return root_processor.parse_at_root(root)
 
 
+def serialize_to_file(root_processor, value, xml_file_path, indent=None):
+    """
+    Serializes the value to an XML file using the root processor.
+
+    :param root_processor: Root processor of the XML document.
+    :param value: Value to serialize.
+    :param xml_file_path: Path to the XML file to which the serialized value will be written.
+    :param indent: If specified, then the XML will be formatted with the specified indentation.
+    """
+    serialized_value = serialize_to_string(root_processor, value, indent)
+
+    with open(xml_file_path, 'wb') as xml_file:
+        xml_file.write(serialized_value)
+
+
 def serialize_to_string(root_processor, value, indent=None):
     """
     Serializes the value to an XML string using the root processor.
 
-    :param indent: If specified, then the XML will be pretty formatted with the indentation.
+    :return: The serialized XML string.
 
-    :return: The serialized XML string. If the omit_empty option was specified for the root
-        processer, and the value is a Falsey value, then an empty string will be returned.
+    See also :func:`declxml.serialize_to_file`
     """
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
     root = root_processor.serialize(value)
 
-    serialized = ET.tostring(root)
+    serialized_value = ET.tostring(root)
 
     # Why does element tree not support pretty printing XML?
     if indent:
-        serialized = minidom.parseString(serialized).toprettyxml(indent=indent)
+        serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
 
-    return serialized
+    return serialized_value
 
 
 def array(item_processor, alias=None, nested=None, omit_empty=False):

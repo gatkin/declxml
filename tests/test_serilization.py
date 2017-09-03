@@ -1,4 +1,6 @@
 """Contains unit tests for serialization logic"""
+import os
+
 import pytest
 
 import declxml.declxml as xml
@@ -1078,5 +1080,42 @@ def test_serialize_pretty():
 """
 
     actual = xml.serialize_to_string(processor, value, indent='    ')
+
+    assert expected == actual
+
+
+def test_serialize_to_file(tmpdir):
+    """Serialize XML data to a file"""
+    value = {
+        'boolean': True,
+        'float': 3.14,
+        'int': 1,
+        'string': 'Hello, World'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean'),
+        xml.floating_point('float'),
+        xml.integer('int'),
+        xml.string('string'),
+    ])
+
+    expected = strip_xml("""
+    <root>  
+        <boolean>True</boolean>
+        <float>3.14</float>
+        <int>1</int>
+        <string>Hello, World</string>
+    </root>
+    """)
+
+    xml_file_name = 'data.xml'
+    xml_file_path = os.path.join(tmpdir.strpath, xml_file_name)
+
+    xml.serialize_to_file(processor, value, xml_file_path)
+
+    # Ensure the file contents match what is expected.
+    xml_file = tmpdir.join(xml_file_name)
+    actual = xml_file.read_binary()
 
     assert expected == actual

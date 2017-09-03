@@ -1,6 +1,4 @@
 """Contains unit tests for parsing logic"""
-import os
-
 import pytest
 
 import declxml.declxml as xml
@@ -756,6 +754,30 @@ def test_parse_float_invalid():
         xml.parse_from_string(processor, xml_string)
 
 
+def test_parse_from_file(tmpdir):
+    """Tests parsing an XML file"""
+    xml_contents = """
+    <root>
+        <value>27</value>
+    </root>
+    """
+
+    xml_file = tmpdir.join('data.xml')
+    xml_file.write(xml_contents)
+
+    processor = xml.dictionary('root', [
+        xml.integer('value'),
+    ])
+
+    expected = {
+        'value': 27,
+    }
+
+    actual = xml.parse_from_file(processor, xml_file.strpath)
+
+    assert expected == actual
+
+
 def test_parse_int_invalid():
     """Parse an invalid int value"""
     xml_string = """
@@ -1008,30 +1030,5 @@ def test_parse_string_strip_whitespace():
     }
 
     actual = xml.parse_from_string(processor, xml_string)
-
-    assert expected == actual
-
-
-def test_parse_from_file(tmpdir):
-    """Tests parsing an XML file"""
-    xml_contents = """
-    <root>
-        <value>27</value>
-    </root>
-    """ 
-    
-    xml_file = tmpdir.join('data.xml')
-    xml_file.write(xml_contents)
-    xml_path = os.path.join(xml_file.dirname, xml_file.basename)
-
-    processor = xml.dictionary('root', [
-        xml.integer('value'),
-    ])
-
-    expected = {
-        'value': 27,
-    }
-
-    actual = xml.parse_from_file(processor, xml_path)
 
     assert expected == actual

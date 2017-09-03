@@ -49,7 +49,7 @@ def test_array_serialize_array_of_arrays():
     """Tests serializing arrays of arrays"""
     value = {
         'results': [
-            [3, 2 ,4],
+            [3, 2 , 4],
             [4, 3],
             [12, 32, 87, 9],
         ]
@@ -70,6 +70,46 @@ def test_array_serialize_array_of_arrays():
             <value>4</value>
             <value>3</value>
         </test-run>
+        <test-run>
+            <value>12</value>
+            <value>32</value>
+            <value>87</value>
+            <value>9</value>
+        </test-run>
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_array_serialize_array_of_arrays_omit_empty():
+    """Tests serializing arrays of arrays with omit empty option specified"""
+    value = {
+        'results': [
+            [3, 2 , 4],
+            [],
+            [12, 32, 87, 9],
+        ]
+    }
+
+    processor = xml.dictionary('root', [
+        xml.array(
+            xml.array(xml.integer('value', required=False), nested='test-run', omit_empty=True),
+            alias='results')
+    ])
+
+    # Empty arrays contained within arrays should never be omitted because we would
+    # lose information when serialzing to XML
+    expected = strip_xml("""
+    <root>
+        <test-run>
+            <value>3</value>
+            <value>2</value>
+            <value>4</value>
+        </test-run>
+        <test-run />
         <test-run>
             <value>12</value>
             <value>32</value>
@@ -114,6 +154,100 @@ def test_array_serialize_missing_optional():
     expected = strip_xml("""
     <root>
         <message>Hello</message>
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_array_serialize_missing_optional_nested():
+    """Seralize a missing optional nested array"""
+    value = {
+        'message': 'Hello',
+        'data': [],
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value', required=False), nested='data')
+    ])
+
+    expected = strip_xml("""
+    <root>
+        <message>Hello</message>
+        <data />
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_array_serialize_omit_empty():
+    """Seralizes an empty array with the omit_empty option"""
+    value = {
+        'message': 'Hello',
+        'data': [],
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value', required=False), nested='data', omit_empty=True)
+    ])
+
+    expected = strip_xml("""
+    <root>
+        <message>Hello</message>
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_array_serialize_omit_empty_non_nested():
+    """Seralizes an array with the omit_empty option"""
+    with pytest.warns(UserWarning):
+        # Should get a warning when specifying omit_empty for non-nested arrays
+        xml.dictionary('root', [
+            xml.string('message'),
+            xml.array(xml.integer('value', required=False), omit_empty=True)
+        ])
+
+
+def test_array_serialize_omit_empty_required():
+    """Seralizes an array with the omit_empty option"""
+    with pytest.warns(UserWarning):
+        # Should get a warning when specifying omit_empty for required arrays
+        xml.dictionary('root', [
+            xml.string('message'),
+            xml.array(xml.integer('value'), nested='data', omit_empty=True)
+        ])
+
+
+def test_array_serialize_omit_empty_present():
+    """Seralizes a non-empty array with the omit_empty option"""
+    value = {
+        'message': 'Hello',
+        'data': [3, 17],
+    }
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('value', required=False), nested='data', omit_empty=True)
+    ])
+
+    expected = strip_xml("""
+    <root>
+        <message>Hello</message>
+        <data>
+            <value>3</value>
+            <value>17</value>
+        </data>
     </root>
     """)
 
@@ -205,6 +339,33 @@ def test_array_serialize_primitive():
         <value>3</value>
         <value>17</value>
         <value>5</value>
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
+def test_array_serialize_primitive_omit_empty():
+    """Serialize an array of primitive values with omit empty option specified"""
+    value = {
+        'values': ['Hello', '', 'Hola', 'Bonjour']
+    }
+
+    processor = xml.dictionary('root', [
+        xml.array(xml.string('value', required=False, omit_empty=True), alias='values')
+    ])
+
+    # Even with the omit empty option specified, we should never omit
+    # Falsey values contained within an array because that would cause
+    # us to lose information from the original array.
+    expected = strip_xml("""
+    <root>
+        <value>Hello</value>
+        <value />
+        <value>Hola</value>
+        <value>Bonjour</value>
     </root>
     """)
 

@@ -89,7 +89,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized
 
 
-def array(item_processor, alias=None, nested=None):
+def array(item_processor, alias=None, nested=None, omit_empty=False):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -124,10 +124,16 @@ def array(item_processor, alias=None, nested=None):
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
         the array is treated as an embedded array.
+    :param omit_empty: If True, then nested arrays will be omitted when serializing if
+        they are empty. Only valid when nested is specified. Note that an empty array
+        may only be omitted if it is not itself contained within an array. That is,
+        for an array of arrays, any empty arrays in the outer array will always be
+        serialized to prevent information about the original array from being lost
+        when serializing.
 
     :return: A declxml processor object.
     """
-    return _Array(item_processor, alias, nested)
+    return _Array(item_processor, alias, nested, omit_empty)
 
 
 def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False):
@@ -144,7 +150,9 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
         XML. If not specified, then the element_name is used as the name of the value.
     :param default: Default value to use if the element is not present. This option is only
         valid if required is specified as False.
-    :param omit_empty: If True, then Falsey values will be ommitted when serializing to XML.
+    :param omit_empty: If True, then Falsey values will be omitted when serializing to XML. Note
+        that Falsey values are never omitted when they are elements of an array. Falsey values can
+        be omitted only when they are standalone elements.
 
     :return: A declxml processor object.
     """
@@ -212,16 +220,24 @@ def user_object(element_name, cls, child_processors, required=True, alias=None):
 class _Array(object):
     """An XML processor for Array values"""
 
-    def __init__(self, item_processor, alias=None, nested=None):
+    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
         self._item_processor = item_processor
         self._nested = nested
         self.required = item_processor.required
+
         if alias:
             self.alias = alias
         elif nested:
             self.alias = nested
         else:
             self.alias = item_processor.alias
+
+        if not nested or self.required:
+            self.omit_empty = False
+            if omit_empty:
+                warnings.warn('omit_empty ignored for non-nested and/or required arrays')
+        else:
+            self.omit_empty = omit_empty
 
     def parse_at_element(self, element):
         """Parses the provided element as an array"""
@@ -273,6 +289,9 @@ class _Array(object):
         if not value and self.required:
             raise MissingValue('Missing required array: "{}"'.format(
                 self.alias))
+
+        if not value and self.omit_empty:
+            return  # Do nothing
 
         if self._nested is not None:
             array_parent = _element_get_or_add_from_parent(parent, self._nested)
@@ -444,7 +463,7 @@ class _PrimitiveValue(object):
         option was specified and the value is falsey, then this will return None.
         """
         # For primitive values, this is only called when the value is part of an array,
-        # in which case we do not need to check for missing or omitted values.      
+        # in which case we do not need to check for missing or omitted values.
         element = ET.Element(self.element_name)
         self._serialize(element, value)
         return element

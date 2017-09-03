@@ -612,7 +612,9 @@ def _parse_int(element_text):
 def _parse_string(strip_whitespace):
     """Returns a parser function for parsing string values"""
     def _parse_string_value(element_text):
-        if strip_whitespace:
+        if element_text is None:
+            value = ''
+        elif strip_whitespace:
             value = element_text.strip()
         else:
             value = element_text

@@ -135,6 +135,32 @@ def test_parse_array_nested():
     assert expected == actual
 
 
+def test_parse_array_nested_empty_optional():
+    """Parse nested empty array"""
+    xml_string = """
+    <root>
+        <message>Hello, World!</message>
+        <numbers />
+    </root>
+    """
+
+    numbers_array = xml.array(xml.integer('number', required=False), nested='numbers')
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        numbers_array,
+    ])
+
+    expected = {
+        'message': 'Hello, World!',
+        'numbers': [],
+    }
+
+    actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
+
+
 def test_parse_array_of_arrays():
     """Parse array of arrays"""
     xml_string = """
@@ -495,6 +521,54 @@ def test_parse_dictionary_aliased():
         'stats': {
             'age': 25,
             'gender': 'male',
+        },
+    }
+
+    actual = xml.parse_from_string(person, xml_string)
+
+    assert expected == actual
+
+
+def test_parse_dictionary_empty_optional():
+    """Parse an empty, optional dictionary"""
+    xml_string = """
+    <person>
+        <name>John Doe</name>
+        <demographics>
+            <age>25</age>
+            <gender>male</gender>
+        </demographics>
+        <address />
+    </person>
+    """
+
+    demographics = xml.dictionary('demographics', [
+        xml.integer('age'),
+        xml.string('gender'),
+    ])
+
+    address = xml.dictionary('address', [
+        xml.string('street', required=False),
+        xml.integer('zip', required=False),
+        xml.string('state', required=False),
+    ])
+
+    person = xml.dictionary('person', [
+        xml.string('name'),
+        demographics,
+        address,
+    ])
+
+    expected = {
+        'name': 'John Doe',
+        'demographics': {
+            'age': 25,
+            'gender': 'male',
+        },
+        'address': {
+            'street': '',
+            'zip': 0,
+            'state': ''
         },
     }
 
@@ -873,6 +947,27 @@ def test_parse_primitive_root_parser():
 
     with pytest.raises(xml.InvalidRootProcessor):
         xml.parse_from_string(processor, xml_string)
+
+
+def test_parse_string_empty_optional():
+    """Parse an empty, optional string"""
+    xml_string = """
+    <root>
+        <message />
+    </root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('message', required=False)
+    ])
+
+    expected = {
+        'message': '',
+    }
+
+    actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
 
 
 def test_parse_string_leave_whitespace():

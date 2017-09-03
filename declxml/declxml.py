@@ -24,7 +24,18 @@ dictionaries, arrays, and user objects.
 .. autofunction:: declxml.array
 .. autofunction:: declxml.dictionary
 .. autofunction:: declxml.user_object
+
+Parsing
+----------
+.. autofunction:: declxml.parse_from_file
+.. autofunction:: declxml.parse_from_string
+
+Serialization
+---------------
+.. autofunction:: declxml.serialize_to_file
+.. autofunction:: declxml.serialize_to_string
 """
+from collections import namedtuple
 import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
@@ -242,7 +253,51 @@ def user_object(element_name, cls, child_processors, required=True, alias=None):
 
     See also :func:`declxml.dictionary`
     """
-    return _UserObject(element_name, cls, child_processors, required, alias)
+    converter = _user_object_converter(cls)
+    return _Aggregate(element_name, converter, child_processors, required, alias)
+
+
+# Defines pair of functions to convert between aggregates and dictionaries
+_AggregateConverter = namedtuple('_AggregateConverter', ['from_dict', 'to_dict'])
+
+
+class _Aggregate(object):
+    """An XML processor for processing aggregates"""
+
+    def __init__(self, element_name, converter, child_processors, required=True, alias=None):
+        self.element_name = element_name
+        self._converter = converter
+        self.required = required
+        self._dictionary = _Dictionary(element_name, child_processors, required, alias)
+        if alias:
+            self.alias = alias
+        else:
+            self.alias = element_name
+
+    def parse_at_element(self, element):
+        """Parses the provided element as an aggregate"""
+        parsed_dict = self._dictionary.parse_at_element(element)
+        return self._converter.from_dict(parsed_dict)
+
+    def parse_at_root(self, root):
+        """Parses the root XML element as an aggregate"""
+        parsed_dict = self._dictionary.parse_at_root(root)
+        return self._converter.from_dict(parsed_dict)
+
+    def parse_from_parent(self, parent):
+        """Parses the aggregate from the provided parent XML element"""
+        parsed_dict = self._dictionary.parse_from_parent(parent)
+        return self._converter.from_dict(parsed_dict)
+
+    def serialize(self, value):
+        """Serializes the value to a new element and returns the element."""
+        dict_value = self._converter.to_dict(value)
+        return self._dictionary.serialize(dict_value)
+
+    def serialize_on_parent(self, parent, value):
+        """Serializes the value and adds it to the parent"""
+        dict_value = self._converter.to_dict(value)
+        self._dictionary.serialize_on_parent(parent, dict_value)
 
 
 class _Array(object):
@@ -376,7 +431,7 @@ class _Dictionary(object):
             for child in self._child_processors:
                 parsed_dict[child.alias] = child.parse_from_parent(element)
         elif self.required:
-            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required aggregate: "{}"'.format(self.element_name))
 
         return parsed_dict
 
@@ -387,7 +442,7 @@ class _Dictionary(object):
         if root.tag == self.element_name:
             parsed_dict = self.parse_at_element(root)
         elif self.required:
-            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required aggregate: "{}"'.format(self.element_name))
 
         return parsed_dict
 
@@ -401,7 +456,7 @@ class _Dictionary(object):
         Serializes the value to a new element and returns the element.
         """
         if not value and self.required:
-            raise MissingValue('Missing required dictionary: "{}"'.format(self.element_name))
+            raise MissingValue('Missing required aggregate: "{}"'.format(self.element_name))
 
         element = ET.Element(self.element_name)
         self._serialize(element, value)
@@ -410,7 +465,7 @@ class _Dictionary(object):
     def serialize_on_parent(self, parent, value):
         """Serializes the value and adds it to the parent"""
         if not value and self.required:
-            raise MissingValue('Missing required dictionary: "{}"'.format(
+            raise MissingValue('Missing required aggregate: "{}"'.format(
                 self.element_name))
 
         if not value:
@@ -536,53 +591,6 @@ class _PrimitiveValue(object):
             element.text = serialized_value
 
 
-class _UserObject(object):
-    """An XML processor for processing user-defined class instances"""
-
-    def __init__(self, element_name, cls, child_processors, required=True, alias=None):
-        self.element_name = element_name
-        self.required = required
-        self._cls = cls
-        self._dictionary = _Dictionary(element_name, child_processors, required, alias)
-        if alias:
-            self.alias = alias
-        else:
-            self.alias = element_name
-
-    def parse_at_element(self, element):
-        """Parses the provided element as a user object"""
-        parsed_dict = self._dictionary.parse_at_element(element)
-        return self._dict_to_user_object(parsed_dict)
-
-    def parse_at_root(self, root):
-        """Parses the root XML element as a user object"""
-        parsed_dict = self._dictionary.parse_at_root(root)
-        return self._dict_to_user_object(parsed_dict)
-
-    def parse_from_parent(self, parent):
-        """Parses the user object data from the provided parent XML element"""
-        parsed_dict = self._dictionary.parse_from_parent(parent)
-        return self._dict_to_user_object(parsed_dict)
-
-    def serialize(self, value):
-        """
-        Serializes the value to a new element and returns the element.
-        """
-        return self._dictionary.serialize(value.__dict__)
-
-    def serialize_on_parent(self, parent, value):
-        """Serializes the value and adds it to the parent"""
-        self._dictionary.serialize_on_parent(parent, value.__dict__)
-
-    def _dict_to_user_object(self, dict_value):
-        """Converts the dictionary value to an instance of the user object"""
-        value = self._cls()
-        for field_name, field_value in dict_value.items():
-            setattr(value, field_name, field_value)
-
-        return value
-
-
 def _element_get_or_add_from_parent(parent, element_name):
     """
     If an element with the give name has already been added to the parent element,
@@ -650,6 +658,24 @@ def _parse_string(strip_whitespace):
         return value
 
     return _parse_string_value
+
+
+def _user_object_converter(cls):
+    """Returns an _AggregateConverter for a user object of the given class"""
+    def _from_dict(value):
+        object_value = cls()
+
+        for field_name, field_value in value.items():
+            setattr(object_value, field_name, field_value)
+
+        return object_value
+
+    def _to_dict(value):
+        return value.__dict__
+
+    converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
+
+    return converter
 
 
 def _xml_namespace_strip(root):

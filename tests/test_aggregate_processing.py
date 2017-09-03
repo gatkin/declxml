@@ -56,7 +56,7 @@ def test_parse_aliased():
     }
 
     actual = xml.parse_from_string(processor, xml_string)
-    
+
     assert expected == actual
 
 

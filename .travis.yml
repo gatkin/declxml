@@ -10,4 +10,6 @@ python:
   - "3.7-dev"
   - "nightly"
 install: "pip install -r requirements.txt"
-script: "pytest -v"
+script: "py.test --cov=declxml"
+after_success:
+  - codecov

@@ -35,6 +35,13 @@ Serialization
 ---------------
 .. autofunction:: declxml.serialize_to_file
 .. autofunction:: declxml.serialize_to_string
+
+Exceptions
+------------
+.. autoexception:: declxml.XmlError
+.. autoexception:: declxml.InvalidPrimitiveValue
+.. autoexception:: declxml.InvalidRootProcessor
+.. autoexception:: declxml.MissingValue
 """
 from collections import namedtuple
 import warnings
@@ -43,7 +50,7 @@ import xml.etree.ElementTree as ET
 
 
 class XmlError(Exception):
-    """Represents errors encountered when parsing XML data"""
+    """Base error class representing errors processing XML data"""
 
 
 class InvalidPrimitiveValue(XmlError):
@@ -51,11 +58,11 @@ class InvalidPrimitiveValue(XmlError):
 
 
 class InvalidRootProcessor(XmlError):
-    """Represents errors due to an invalid root processor"""
+    """Represents errors due to invalid root processors"""
 
 
 class MissingValue(XmlError):
-    """Represents errors due to a missing required element"""
+    """Represents errors due to missing required values"""
 
 
 def parse_from_file(root_processor, xml_file_path):

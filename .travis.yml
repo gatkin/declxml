@@ -9,7 +9,12 @@ python:
   - "3.6-dev"
   - "3.7-dev"
   - "nightly"
-install: "pip install -r requirements.txt"
-script: "py.test --cov=declxml"
+
+install: 
+  - pip install -r requirements.txt
+
+script:
+  -coverage tests/run_tests.py
+
 after_success:
   - codecov

@@ -23,6 +23,7 @@ dictionaries, arrays, and user objects.
 
 .. autofunction:: declxml.array
 .. autofunction:: declxml.dictionary
+.. autofunction:: declxml.named_tuple
 .. autofunction:: declxml.user_object
 
 Parsing

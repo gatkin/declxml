@@ -112,7 +112,6 @@ xml.serialize_to_string(author_processor, author)
         <published>1951</published>
     </book>
 </author>
-
 """
 ```
 

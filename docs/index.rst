@@ -17,8 +17,101 @@ Processors are used to both serialize and parse XML data as well as to perform a
 validation.
 
 
+Installation
+--------------
+Install with pip
+
+.. sourcecode:: bash
+
+    pip install declxml
+
+
 .. toctree::
    :maxdepth: 2
 
-   quickstart
+   guide
    api
+
+
+Usage
+----------------
+With declxml, you declaritively define the structure of your XML document using processors which can then be used for both parsing and
+serialization.
+
+.. sourcecode:: py
+
+    import declxml as xml
+
+    author_processor = xml.dictionary('author', [
+        xml.string('name'),
+        xml.integer('birth-year'),
+        xml.array(xml.dictionary('book', [
+            xml.string('title'),
+            xml.integer('published')
+        ]), alias='books')
+    ])
+
+    author_xml = """
+    <author>
+        <name>Robert A. Heinlein</name>
+        <birth-year>1907</birth-year>
+        <book>
+            <title>Starship Troopers</title>
+            <published>1959</published>
+        </book>
+        <book>
+            <title>Stranger in a Strange Land</title>
+            <published>1961</published>
+        </book>
+    </author>
+    """
+
+    xml.parse_from_string(author_processor, author_xml)
+
+    {
+        'birth-year': 1907,
+        'name': 'Robert A. Heinlein',
+        'books': [
+            {
+                'title': 'Starship Troopers',
+                'published': 1959
+            },
+            {
+                'title': 'Stranger in a Strange Land',
+                'published': 1961
+            }
+        ]
+    }
+
+    # The same processor is used for serializing as well.
+    author = {
+        'birth-year': 1920,
+        'name': 'Issac Asimov',
+        'books': [
+            {
+                'title': 'I, Robot',
+                'published': 1950
+            },
+            {
+                'title': 'Foundation',
+                'published': 1951
+            }
+        ]
+    }
+
+    xml.serialize_to_string(author_processor, author)
+
+    """
+    <author>
+        <name>Issac Asimov</name>
+        <birth-year>1920</birth-year>
+        <book>
+            <title>I, Robot</title>
+            <published>1950</published>
+        </book>
+        <book>
+            <title>Foundation</title>
+            <published>1951</published>
+        </book>
+    </author>
+    """

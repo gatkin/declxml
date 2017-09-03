@@ -593,7 +593,10 @@ class _PrimitiveValue(object):
         # default only if it is None. Falsey values are not considered missing and are
         # not replaced by the default.
         if value is None:
-            serialized_value = str(self._default)
+            if self._default is None:
+                serialized_value = ''
+            else:
+                serialized_value = str(self._default)
         else:
             serialized_value = str(value)
 

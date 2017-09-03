@@ -975,6 +975,36 @@ def test_primitive_serialize_root():
         xml.serialize_to_string(processor, value)
 
 
+def test_primitive_values_serialize():
+    """Serializes primitive values"""
+    value = {
+        'boolean': True,
+        'float': 3.14,
+        'int': 1,
+        'string': 'Hello, World'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean'),
+        xml.floating_point('float'),
+        xml.integer('int'),
+        xml.string('string'),
+    ])
+
+    expected = strip_xml("""
+    <root>  
+        <boolean>True</boolean>
+        <float>3.14</float>
+        <int>1</int>
+        <string>Hello, World</string>
+    </root>
+    """)
+
+    actual = xml.serialize_to_string(processor, value)
+
+    assert expected == actual
+
+
 def test_primitive_values_serialize_falsey():
     """Serialize false primitive values"""
     value = {
@@ -1030,29 +1060,24 @@ def test_primitive_values_serialize_falsey_omitted():
     assert expected == actual
 
 
-def test_primitive_values_serialize():
-    """Serializes primitive values"""
-    value = {
-        'boolean': True,
-        'float': 3.14,
-        'int': 1,
-        'string': 'Hello, World'
-    }
+def test_primitive_values_serialize_none_default():
+    """Serialize primitive values where the default for the value is None"""
+    value = {}
 
     processor = xml.dictionary('root', [
-        xml.boolean('boolean'),
-        xml.floating_point('float'),
-        xml.integer('int'),
-        xml.string('string'),
-    ])
+        xml.boolean('boolean', required=False, default=None),
+        xml.floating_point('float', required=False, default=None),
+        xml.integer('int', required=False, default=None),
+        xml.string('string', required=False, default=None),
+    ], required=False)
 
     expected = strip_xml("""
-    <root>  
-        <boolean>True</boolean>
-        <float>3.14</float>
-        <int>1</int>
-        <string>Hello, World</string>
-    </root>
+    <root>
+        <boolean />
+        <float />
+        <int />
+        <string />
+    </root>  
     """)
 
     actual = xml.serialize_to_string(processor, value)

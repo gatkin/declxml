@@ -22,12 +22,12 @@ from XML.
         xml.integer('birth-year')
     ])
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'birth-year': 1907}
 
 
     author = {'name': 'Isaac Asimiov', 'birth-year': 1920}
-    xml.serialize_xml_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author)
     """
     <author>
         <name>Isaac Asimov</name>
@@ -56,12 +56,12 @@ Processors may specify attributes to which values will be serialized to and pars
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'birth-year': 1907 'birth-month': 'July'}
 
 
     author = {'name': 'Isaac Asimiov', 'birth-year': 1920, 'birth-month': 'January'}
-    xml.serialize_xml_string(author_processor, author, indent='    ')
+    xml.serialize_to_string(author_processor, author, indent='    ')
     """
     <author>
         <name>Isaac Asimov</name>
@@ -88,7 +88,7 @@ Processors can perform basic validation such as ensuring required elements are p
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # MissingValue: Missing required element: "birth-year"
 
 
@@ -110,7 +110,7 @@ Processors also ensure values are of the correct type.
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # InvalidPrimitiveValue: Invalid integer value: "Starship Troopers"
 
 
@@ -136,7 +136,7 @@ Processors may specify optional and default values.
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'birth-year': 1907 'death-year': 1988}
 
 
@@ -147,7 +147,7 @@ Processors may specify optional and default values.
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Liu Cixin', 'birth-year': 1963, 'death-year': None}
 
 
@@ -175,7 +175,7 @@ An embedded is embedded directly within its parent
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'books': ['Starship Troopers', 'Stranger in a Strange Land']}
 
 A nested array is nested within an array element
@@ -199,7 +199,7 @@ A nested array is nested within an array element
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'books': ['Starship Troopers', 'Stranger in a Strange Land']}
 
 
@@ -262,7 +262,7 @@ Processors can be composed to define more complex document structures
     ])
 
 
-    xml.parse_xml_string(genre_processor, genre_xml)
+    xml.parse_from_string(genre_processor, genre_xml)
     { 'genre': 'Science Fiction',
       'authors': [ { 'name': 'Robert A. Heinlein',
                  'birth-year': 1907,
@@ -311,14 +311,14 @@ Simply provide the class to the processor factor function
     </author>
     """
 
-    xml.parse_xml_string(author_processor, author_xml)
+    xml.parse_from_string(author_processor, author_xml)
     # Author(name=Robert A. Heinlein, birth_year=1907)
 
     author = Author()
     author.name = 'Isaac Asimiov'
     author.birth_year = 1920
 
-    xml.serialize_xml_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author)
     """
     <author>
         <name>Isaac Asimov</name>

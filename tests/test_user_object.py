@@ -55,7 +55,7 @@ def test_parse_aliased():
         'character': Person().set_values(name='Ron', age=18)
     }
 
-    actual = xml.parse_xml_string(processor, xml_string)
+    actual = xml.parse_from_string(processor, xml_string)
     
     assert expected == actual
 
@@ -92,7 +92,7 @@ def test_parse_array():
         ]
     }
 
-    actual = xml.parse_xml_string(processor, xml_string)
+    actual = xml.parse_from_string(processor, xml_string)
 
     assert expected == actual
 
@@ -123,7 +123,7 @@ def test_parse_nested():
         'person': Person().set_values(name='Bob', pets=['Fluffy', 'Spots'])
     }
 
-    actual = xml.parse_xml_string(processor, xml_string)
+    actual = xml.parse_from_string(processor, xml_string)
 
     assert expected == actual
 
@@ -146,7 +146,7 @@ def test_parse_root():
 
     expected = Person().set_values(name='Bob', age=23, gender='male')
 
-    actual = xml.parse_xml_string(processor, xml_string)
+    actual = xml.parse_from_string(processor, xml_string)
 
     assert expected == actual
 
@@ -176,7 +176,7 @@ def test_serialize_aliased():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(processor, value)
+    actual = xml.serialize_to_string(processor, value)
 
     assert expected == actual
 
@@ -211,7 +211,7 @@ def test_serialize_array():
     </people>
     """)
 
-    actual = xml.serialize_xml_string(processor, value)
+    actual = xml.serialize_to_string(processor, value)
 
     assert expected == actual
 
@@ -242,7 +242,7 @@ def test_serialize_nested():
     </root>
     """)
 
-    actual = xml.serialize_xml_string(processor, value)
+    actual = xml.serialize_to_string(processor, value)
 
     assert expected == actual
 
@@ -265,6 +265,6 @@ def test_serialize_root():
     </person>
     """)
 
-    actual = xml.serialize_xml_string(processor, value)
+    actual = xml.serialize_to_string(processor, value)
 
     assert expected == actual

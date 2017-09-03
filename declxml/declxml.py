@@ -46,17 +46,17 @@ class MissingValue(XmlError):
     """Represents errors due to a missing required element"""
 
 
-def parse_xml_file(root_proccesor, xml_file_path):
+def parse_from_file(root_proccesor, xml_file_path):
     """Parses the XML file using the processor as the root of the document"""
     with open(xml_file_path) as xml_file:
         xml_string = xml_file.read()
-        parsed = parse_xml_string(root_proccesor, xml_string)
+        parsed = parse_from_string(root_proccesor, xml_string)
 
     return parsed
 
 
-def parse_xml_string(root_processor, xml_string):
-    """Parses the XML string using the processor as the root of the document"""
+def parse_from_string(root_processor, xml_string):
+    """Parses the XML string using the processor as the root of the document."""
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
@@ -66,7 +66,7 @@ def parse_xml_string(root_processor, xml_string):
     return root_processor.parse_at_root(root)
 
 
-def serialize_xml_string(root_processor, value, indent=None):
+def serialize_to_string(root_processor, value, indent=None):
     """
     Serializes the value to an XML string using the root processor.
 

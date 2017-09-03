@@ -1,120 +1,157 @@
-# declxml - Declarative XML Processing [![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
-The declxml library makes defining how data is transformed between XML and Python objects simple. Wrather than writing dozens or hundreds of lines of imperitive logic for serializing and parsing XML documents by hand with the ElementTree or minidom libraries, declxml enables you to simply define the data in your XML document using a declaritive syntax. This makes it easy to quickly implement XML parsers and serializers and allows XML document definitions to be easily extended.
+# declxml - Declarative XML Processing
+[![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
+[![codecov](https://codecov.io/gh/gatkin/declxml/branch/master/graph/badge.svg)](https://codecov.io/gh/gatkin/declxml)
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/hug/)
 
-For example, suppose we had some XML data on race results that we want to process
+XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperitive serialization and parsing logic. With declxml, you declaratively define the structure of your XML docuement and let declxml handle all serialization and parsing for you.
+
+## Installation
+```
+pip install declxml
+```
+
+## Usage
+Given some XML to process
 ```xml
-<running-season>
-    <year>2017</year>
-    <runner>
-        <name>John Doe</name>
-        <age>27</age>
-        <gender>Male</gender>
-    </runner>
-    <race>
-        <name>St Patrick's 10k</name>
-        <distance units="kilometers">10</distance>
-        <date>3/17/2017</date>
-        <location>
-            <city>Dublin</city>
-            <country>Ireland</country>
-        </location>
-        <result>
-            <place>51</place>
-            <time units="seconds">2413</time>
-        </result>
-    </race>
-    <race>
-        <name>Boston Marathon</name>
-        <distance units="miles">26.2</distance>
-        <date>4/17/2017</date>
-        <location>
-            <city>Boston</city>
-            <state>MA</state>
-            <country>USA</country>
-        </location>
-        <result>
-            <place>171</place>
-            <time units="seconds">7200</time>
-        </result>
-    </race>
-</running-season>
-``` 
+<author>
+    <name>Robert A. Heinlein</name>
+    <birth-year>1907</birth-year>
+    <book>
+        <title>Starship Troopers</title>
+        <published>1959</published>
+    </book>
+    <book>
+        <title>Stranger in a Strange Land</title>
+        <published>1961</published>
+    </book>
+</author>
+```
 
-Defining an XML processer and using it to parse such documents is simple with declxml. The following example defines an XML processor that transforms race data to and from Python dictionaries.
+Create a declxml processor that defines the structure of the document
 ```python
 import declxml as xml
 
-# Can specify aggregates in the XML by specifying the primitive values that
-# make up the fields of the aggregate
-runner_xml = xml.dictionary('runner', [
-    xml.string('name'),  # decl XML fields are typed
-    xml.integer('age'),
-    xml.string('gender'),
-])
-
-location_xml = xml.dictionary('location', [
-    xml.string('city'),
-    xml.string('state', required=False),
-    xml.string('country'),
-])
-
-result_xml = xml.dictionary('result', [
-    xml.integer('place'),
-    xml.integer('time'),
-    xml.string('time', attribute='units', alias='time_units'),
-])
-
-# Processors can be composed with other processors to define the hierarchical
-# structure of the XML document
-race_xml = xml.dictionary('race', [
+author_processor = xml.dictionary('author', [
     xml.string('name'),
-    xml.floating_point('distance'),
-    xml.string('distance', attribute='units', alias='distance_units'),
-    xml.string('date'),
-    location_xml,
-    result_xml
+    xml.integer('birth-year'),
+    xml.array(xml.dictionary('book', [
+        xml.string('title'),
+        xml.integer('published')
+    ]), alias='books')
 ])
-
-running_season_xml = xml.dictionary('running-season', [
-    xml.integer('year'),
-    runner_xml,
-    xml.array(race_xml, alias='races')
-])
-
-races = xml.parse_xml_file('races.xml', running_season_xml)
-print(races)
 ```
 
-Parsing the above XML file would result in
+Then use the processor to parse XML data
 ```python
-{   'year': 2017,
-    'runner': {'age': 27, 'gender': 'Male', 'name': 'John Doe'},
-    'races': [   {   'date': '3/17/2017',
-                     'distance': 10.0,
-                     'distance_units': 'kilometers',
-                     'location': {   'city': 'Dublin',
-                                     'country': 'Ireland',
-                                     'state': ''},
-                     'name': "St Patrick's 10k",
-                     'result': {   'place': 51,
-                                   'time': 2413,
-                                   'time_units': 'seconds'}},
-                 {   'date': '4/17/2017',
-                     'distance': 26.2,
-                     'distance_units': 'miles',
-                     'location': {   'city': 'Boston',
-                                     'country': 'USA',
-                                     'state': 'MA'},
-                     'name': 'Boston Marathon',
-                     'result': {   'place': 171,
-                                   'time': 7200,
-                                   'time_units': 'seconds'}}],
-}
+import declxml as xml
+
+author_xml = """
+<author>
+    <name>Robert A. Heinlein</name>
+    <birth-year>1907</birth-year>
+    <book>
+        <title>Starship Troopers</title>
+        <published>1959</published>
+    </book>
+    <book>
+        <title>Stranger in a Strange Land</title>
+        <published>1961</published>
+    </book>
+</author>
+"""
+
+xml.parse_from_string(author_processor, author_xml)
+
+{
+    'birth-year': 1907,
+    'name': 'Robert A. Heinlein',
+    'books': [
+        {
+            'title': 'Starship Troopers',
+            'published': 1959
+        },
+        {
+            'title': 'Stranger in a Strange Land',
+            'published': 1961
+        }
+    ]
+ }
 ```
 
-The same processor can be used for serializing Python data structures as well
+The same processor can also be used to serialize data to XML
 ```python
-races = xml.parse_xml_file('races.xml', running_season_xml)
-races['year'] = 2018
-xml.serialize_xml_file(running_season_xml, races, 'races_2018.xml')
+import declxml as xml
+
+author = {
+    'birth-year': 1920,
+    'name': 'Issac Asimov',
+    'books': [
+        {
+            'title': 'I, Robot',
+            'published': 1950
+        },
+        {
+            'title': 'Foundation',
+            'published': 1951
+        }
+    ]
+ }
+
+xml.serialize_to_string(author_processor, author)
+
+"""
+<author>
+    <name>Issac Asimov</name>
+    <birth-year>1920</birth-year>
+    <book>
+        <title>I, Robot</title>
+        <published>1950</published>
+    </book>
+    <book>
+        <title>Foundation</title>
+        <published>1951</published>
+    </book>
+</author>
+
+"""
+```
+
+Want to work with objects instead of dictionaries? You can do that with declxml too.
+```python
+import declxml as xml
+
+
+class Author:
+
+    def __init__(self):
+        self.name = None
+        self.birth_year = None
+        self.books = []
+
+    def __repr__(self):
+        return 'Author(name={}, birth_year={}, books={})'.format(
+            self.name, self.birth_year, self.books)
+
+
+class Book:
+
+    def __init__(self):
+        self.title = None
+        self.published = None
+
+    def __repr__(self):
+        return 'Book(title={}, published={})'.format(self.title, self.published)
+
+
+author_processor = xml.user_object('author', Author, [
+    xml.string('name'),
+    xml.integer('birth-year', alias='birth_year'),
+    xml.array(xml.user_object('book', Book, [
+        xml.string('title'),
+        xml.integer('published')
+    ]), alias='books')
+])
+
+xml.parse_from_string(author_processor, author_xml)
+# Author(name=Robert A. Heinlein, birth_year=1907, books=[Book(title=Starship Troopers, published=1950), Book(title=Stranger in a Strange Land, published=1951)])
 ```

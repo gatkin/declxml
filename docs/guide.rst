@@ -1,5 +1,5 @@
 Guide
-============
+=====
 The basic building blocks used in the declxml library are *processor* objects. Processors are used to define the structure of the
 XML document. There are two types of processors:
 
@@ -7,8 +7,9 @@ XML document. There are two types of processors:
 * **Aggregate** processors - Used for processing aggregate values such as dictionaries, arrays, and objects. Aggregate processors are themselves composed of other processors.
 
 
-Primitive processors are created using the processor factory function for the type of value to process. For instance, the folowing
-creates a processor for integer values in an "id" element element:
+Primitive processors are created using the processor factory function that corresponds to the type of value to process. The
+factory functions offer several options for configuring a processor. The following creates a basic processor for integer values
+contained an "id" element:
 
 .. sourcecode:: py
 
@@ -17,7 +18,7 @@ creates a processor for integer values in an "id" element element:
     xml.integer('id')
 
 Aggregate processors are created by specifying a list of child processors that compose the aggregate. The following creates a processor
-for dictionary values contained within a "user" element that itself contains "user-name" and "id" subelements:
+for dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
 
 .. sourcecode:: py
 
@@ -30,7 +31,7 @@ for dictionary values contained within a "user" element that itself contains "us
 
 
 Parsing and Serialization
---------------------------------------
+-------------------------
 Processors define the structure of an XML document and are used to both parse and serialize data to and from XML.
 
 .. sourcecode:: py
@@ -63,8 +64,8 @@ Processors define the structure of an XML document and are used to both parse an
     """
 
 Attributes
--------------------
-Processors may specify attributes which values will be serialized to and parsed from.
+----------
+Processors may be configured to read and write values from attributes.
 
 .. sourcecode:: py
 
@@ -97,7 +98,7 @@ Processors may specify attributes which values will be serialized to and parsed 
     """
 
 Validation
--------------------
+----------
 Processors can perform basic validation such as ensuring required elements are present.
 
 .. sourcecode:: py
@@ -133,16 +134,16 @@ Processors also ensure values are of the correct type.
     author_xml = """
     <author>
         <name>Robert A. Heinlein</name>
-        <birth-year>Starship Troopers</birth-year>
+        <birth-year>Hello</birth-year>
     </author>
     """
 
     xml.parse_from_string(author_processor, author_xml)
-    # InvalidPrimitiveValue: Invalid integer value: "Starship Troopers"
+    # InvalidPrimitiveValue: Invalid integer value: "Hello"
 
 
 Optional and Default Values
------------------------------------
+---------------------------
 Processors may specify optional and default values.
 
 .. sourcecode:: py
@@ -179,9 +180,9 @@ Processors may specify optional and default values.
 
 
 Aliases
------------
-By default, processors use the element name for the name of value in Python. An alias can be provided to use a different name for
-a value in Python.
+-------
+By default, processors use the element name as the name of the value in Python. An alias can be provided to use a different name for
+the value in Python.
 
 .. sourcecode:: python
 
@@ -213,7 +214,7 @@ a value in Python.
     """
 
 Omitting Empty Values
---------------------------
+---------------------
 Processors can be configured to omit missing or falsey values when serializing. Only optional values may be omitted.
 
 .. sourcecode:: python
@@ -247,11 +248,11 @@ Processors can be configured to omit missing or falsey values when serializing. 
 
 
 Arrays
---------
-Processors can be defined for array values. An array processor is composed with another
-processor for procssing the items of the array. An array can either be *embedded* or *nested*.
+------
+Processors can be defined for array values. When creating an array processor, a processor must be specified for processing
+the array's items. An array is treated as optional if its item processor is configured as optional. .
 
-An embedded is embedded directly within its parent
+An array can either be *embedded* or *nested*. An embedded is embedded directly within its parent
 
 .. sourcecode:: py
 
@@ -273,7 +274,7 @@ An embedded is embedded directly within its parent
     xml.parse_from_string(author_processor, author_xml)
     # {'name': 'Robert A. Heinlein', 'books': ['Starship Troopers', 'Stranger in a Strange Land']}
 
-A nested array is nested within an array element
+A nested array is nested within a separate array element
 
 .. sourcecode:: py
 
@@ -299,8 +300,8 @@ A nested array is nested within an array element
 
 
 Composing Processors
------------------------
-Processors can be composed to define more complex document structures
+--------------------
+Processors can be composed to define more complex document structures.
 
 .. sourcecode:: py
 
@@ -371,8 +372,8 @@ Processors can be composed to define more complex document structures
 
 
 User-Defined Classes
----------------------
-Processors can also be created for parsing and serializing xml data to and from user-defined classes.
+--------------------
+Processors can also be created for parsing and serializing XML data to and from user-defined classes.
 Simply provide the class to the processor factory function.
 
 .. sourcecode:: py
@@ -419,7 +420,7 @@ Simply provide the class to the processor factory function.
 
 
 Named Tuples
--------------
+------------
 Processors may also be created for named tuple values.
 
 .. sourcecode:: py

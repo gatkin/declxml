@@ -4,11 +4,11 @@ declxml is a library for declaratively processing XML documents.
 Processors
 ---------------
 The declxml library uses processors to define the structure of XML documents. Processors can be
-divided into two categories: *primitve processors* and *aggregate processors*.
+divided into two categories: *primitive processors* and *aggregate processors*.
 
 Primitive Processors
 ----------------------
-Primitive processors are used to parse and serialize simple, primitve values. The following module
+Primitive processors are used to parse and serialize simple, primitive values. The following module
 functions are used to construct primitive processors:
 
 .. autofunction:: declxml.boolean
@@ -365,7 +365,7 @@ class _Array(object):
         if self._nested:
             item_iter = parent.find(self._nested)
         else:
-            # The array's items are emebedded within the parent
+            # The array's items are embedded within the parent
             item_iter = parent.findall(self._item_processor.element_name)
 
         return self._parse(item_iter)
@@ -528,7 +528,7 @@ class _PrimitiveValue(object):
         else:
             self.alias = element_name
 
-        # If a value is required, then it will never be ommitted when serialized. This
+        # If a value is required, then it will never be omitted when serialized. This
         # is to ensure that data that is serialized by a processor can also be parsed
         # by a processor. Omitting required values would lead to an error when attempting
         # to parse the XML data. For primitives, a value must be None to be considered
@@ -584,7 +584,7 @@ class _PrimitiveValue(object):
         self._serialize(element, value)
 
     def _parse_attribute(self, element):
-        """Parses the primiteve value within the XML element's attribute"""
+        """Parses the primitive value within the XML element's attribute"""
         parsed_value = self._default
         attribute_value = element.get(self._attribute, None)
         if attribute_value:
@@ -597,7 +597,7 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value):
         """Serializes the value to the element"""
-        # A value is only considered missing, and hence elegible to be replaced by its
+        # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
         # not replaced by the default.
         if value is None:

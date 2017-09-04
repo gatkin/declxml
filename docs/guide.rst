@@ -9,7 +9,7 @@ XML document. There are two types of processors:
 
 Primitive processors are created using the processor factory function that corresponds to the type of value to process. The
 factory functions offer several options for configuring a processor. The following creates a basic processor for integer values
-contained an "id" element:
+contained within an "id" element:
 
 .. sourcecode:: py
 
@@ -18,7 +18,7 @@ contained an "id" element:
     xml.integer('id')
 
 Aggregate processors are created by specifying a list of child processors that compose the aggregate. The following creates a processor
-for dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
+for a dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
 
 .. sourcecode:: py
 
@@ -55,7 +55,7 @@ Processors define the structure of an XML document and are used to both parse an
 
 
     author = {'name': 'Isaac Asimov', 'birth-year': 1920}
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='  ')
     """
     <author>
         <name>Isaac Asimov</name>
@@ -205,7 +205,7 @@ the value in Python.
 
 
     author = {'author_name': 'Isaac Asimov', 'year_born': 1920}
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='   ')
     """
     <author>
         <name>Isaac Asimov</name>
@@ -228,7 +228,7 @@ Processors can be configured to omit missing or falsey values when serializing. 
     ])
 
     author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'nationality': ''}
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='    ')
     """
     <author>
         <name>Isaac Asimov</name>
@@ -237,7 +237,7 @@ Processors can be configured to omit missing or falsey values when serializing. 
     """
 
     author = {'name': 'Robert A. Heinlein', 'birth-year': 1907, 'nationality': 'American'}
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='    ')
     """
     <author>
         <name>Robert A. Heinlein</name>
@@ -410,13 +410,17 @@ Simply provide the class to the processor factory function.
     author.name = 'Isaac Asimov'
     author.birth_year = 1920
 
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='    ')
     """
     <author>
         <name>Isaac Asimov</name>
         <birth-year>1920</birth-year>
     </author>
     """
+
+Note that the class provided to the `user_object` factory function must have a zero-argument constructor.
+It is also possible to pass any other callable object that takes zero parameters and returns an object
+instance to which parsed values will be read into.
 
 
 Named Tuples
@@ -449,7 +453,7 @@ Processors may also be created for named tuple values.
     # Author(name='Robert A. Heinlein', birth_year=1907)
 
     author = Author(name='Isaac Asimov', birth_year=1920)
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='    ')
     """
     <author>
         <name>Isaac Asimov</name>

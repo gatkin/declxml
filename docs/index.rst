@@ -99,7 +99,7 @@ serialization.
         ]
     }
 
-    xml.serialize_to_string(author_processor, author)
+    xml.serialize_to_string(author_processor, author, indent='   ')
 
     """
     <author>

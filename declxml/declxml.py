@@ -165,9 +165,12 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
         </root-element>
 
 
+    An array is considered required when its item processor is configured as being
+    required.
+
     :param item_processor: A declxml processor object for the items of the array.
     :param alias: If specified, the name given to the array when read from XML.
-        If not specified, then the name of the items is used instead.
+        If not specified, then the name of the item processor is used instead.
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
         the array is treated as an embedded array.
@@ -252,7 +255,7 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
     return _Aggregate(element_name, converter, child_processors, required, alias)
 
 
-def string(element_name, attribute=None, required=True, alias=None, default='', strip_whitespace=True, omit_empty=False):
+def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True):
     """
     Creates a processor for integer values.
 

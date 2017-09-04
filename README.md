@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/gatkin/declxml/branch/master/graph/badge.svg)](https://codecov.io/gh/gatkin/declxml)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/declxml/)
 
-XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperitive serialization and parsing logic. With declxml, you declaratively define the structure of your XML docuement and let declxml handle the rest.
+XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperative serialization and parsing logic. With declxml, you declaratively define the structure of your XML document and let declxml handle the rest.
 
 ## Installation
 ```
@@ -97,7 +97,7 @@ author = {
     ]
  }
 
-xml.serialize_to_string(author_processor, author)
+xml.serialize_to_string(author_processor, author, indent='    ')
 
 """
 <author>

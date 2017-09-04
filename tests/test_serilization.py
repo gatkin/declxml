@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-import declxml.declxml as xml
+import declxml as xml
 from .helpers import strip_xml
 
 

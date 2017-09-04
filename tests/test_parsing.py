@@ -1,7 +1,7 @@
 """Contains unit tests for parsing logic"""
 import pytest
 
-import declxml.declxml as xml
+import declxml as xml
 
 
 def test_parse_array_embedded():

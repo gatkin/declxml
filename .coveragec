@@ -1,2 +1,5 @@
 [run]
-source=declxml
+source=declxml.py
+
+[report]
+omit = tests/*

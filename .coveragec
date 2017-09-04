@@ -1,5 +1,7 @@
 [run]
-source=declxml.py
+include =
+    declxml.py
 
 [report]
-omit = tests/*
+omit =
+    tests/*

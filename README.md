@@ -2,7 +2,7 @@
 [![PyPI version](https://badge.fury.io/py/declxml.svg)](https://badge.fury.io/py/declxml)
 [![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
 [![codecov](https://codecov.io/gh/gatkin/declxml/branch/master/graph/badge.svg)](https://codecov.io/gh/gatkin/declxml)
-[![Documentation Status](http://readthedocs.org/projects/declxml/badge/?version=latest)](http://declxml.readthedocs.io/)
+[![Documentation Status](http://readthedocs.org/projects/declxml/badge/?version=latest)](http://declxml.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/declxml/)
 
 XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperative serialization and parsing logic. With declxml, you declaratively define the structure of your XML document and let declxml handle the rest.

@@ -23,7 +23,7 @@ Install with pip
 
 .. sourcecode:: bash
 
-    pip install declxml
+    pip install -U declxml
 
 
 .. toctree::

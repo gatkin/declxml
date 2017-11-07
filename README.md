@@ -9,7 +9,7 @@ XML processing made easy. No more writing and maintaining dozens or hundreds of 
 
 ## Installation
 ```
-pip install declxml
+pip install -U declxml
 ```
 
 ## Documentation

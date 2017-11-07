@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='declxml',
     description='Declarative XML processing library',
-    version='0.9.1',
+    version='0.9.2',
     url='http://declxml.readthedocs.io/',
     author='Greg Atkin',
     author_email='greg.scott.atkin@gmail.com',

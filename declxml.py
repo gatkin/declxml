@@ -126,11 +126,12 @@ def serialize_to_string(root_processor, value, indent=None):
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
-    root = root_processor.serialize(value)
+    state = _ProcessorState()
+    root = root_processor.serialize(value, state)
 
     serialized_value = ET.tostring(root)
 
-    # Why does element tree not support pretty printing XML?
+    # Since element tree not support pretty printing XML, we use minidom to do the pretty printing
     if indent:
         serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
 
@@ -313,15 +314,15 @@ class _Aggregate(object):
         parsed_dict = self._dictionary.parse_from_parent(parent, state)
         return self._converter.from_dict(parsed_dict)
 
-    def serialize(self, value):
+    def serialize(self, value, state):
         """Serializes the value to a new element and returns the element."""
         dict_value = self._converter.to_dict(value)
-        return self._dictionary.serialize(dict_value)
+        return self._dictionary.serialize(dict_value, state)
 
-    def serialize_on_parent(self, parent, value):
+    def serialize_on_parent(self, parent, value, state):
         """Serializes the value and adds it to the parent"""
         dict_value = self._converter.to_dict(value)
-        self._dictionary.serialize_on_parent(parent, dict_value)
+        self._dictionary.serialize_on_parent(parent, dict_value, state)
 
 
 class _Array(object):
@@ -376,27 +377,28 @@ class _Array(object):
 
         return self._parse(item_iter, state)
 
-    def serialize(self, value):
+    def serialize(self, value, state):
         """
         Serializes the value into a new Element object and returns it.
         """
         if self._nested is None:
-            raise InvalidRootProcessor('Cannot directly serialize a non-nested array: {}'.format(
-                self.alias))
+            state.raise_error(InvalidRootProcessor,
+                              'Cannot directly serialize a non-nested array "{}"'
+                              .format(self.alias))
 
         if not value and self.required:
-            raise MissingValue('Missing required array: "{}"'.format(
+            state.raise_error(MissingValue, 'Missing required array: "{}"'.format(
                 self.alias))
 
         element = ET.Element(self._nested)
-        self._serialize(element, value)
+        self._serialize(element, value, state)
 
         return element
 
-    def serialize_on_parent(self, parent, value):
+    def serialize_on_parent(self, parent, value, state):
         """Serializes value and appends it to the parent element"""
         if not value and self.required:
-            raise MissingValue('Missing required array: "{}"'.format(
+            state.raise_error(MissingValue, 'Missing required array: "{}"'.format(
                 self.alias))
 
         if not value and self.omit_empty:
@@ -408,7 +410,7 @@ class _Array(object):
             # Embedded array has all items serialized directly on the parent.
             array_parent = parent
 
-        self._serialize(array_parent, value)
+        self._serialize(array_parent, value, state)
 
     def _parse(self, item_iter, state):
         """
@@ -428,16 +430,18 @@ class _Array(object):
 
         return parsed_array
 
-    def _serialize(self, array_parent, value):
+    def _serialize(self, array_parent, value, state):
         """Serializes the array value adding it to the array parent element"""
         if not value:
             # Nothing to do. Avoid attempting to iterate over a possibly
             # None value.
             return
 
-        for item_value in value:
-            item_element = self._item_processor.serialize(item_value)
+        for i, item_value in enumerate(value):
+            state.push_location(self._item_processor.alias, i)
+            item_element = self._item_processor.serialize(item_value, state)
             array_parent.append(item_element)
+            state.pop_location()
 
 
 class _Dictionary(object):
@@ -484,34 +488,36 @@ class _Dictionary(object):
         element = parent.find(self.element_name)
         return self.parse_at_element(element, state)
 
-    def serialize(self, value):
+    def serialize(self, value, state):
         """
         Serializes the value to a new element and returns the element.
         """
         if not value and self.required:
-            raise MissingValue('Missing required aggregate: "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_name))
 
         element = ET.Element(self.element_name)
-        self._serialize(element, value)
+        self._serialize(element, value, state)
         return element
 
-    def serialize_on_parent(self, parent, value):
+    def serialize_on_parent(self, parent, value, state):
         """Serializes the value and adds it to the parent"""
         if not value and self.required:
-            raise MissingValue('Missing required aggregate: "{}"'.format(
+            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(
                 self.element_name))
 
         if not value:
             return  # Do Nothing
 
         element = _element_get_or_add_from_parent(parent, self.element_name)
-        self._serialize(element, value)
+        self._serialize(element, value, state)
 
-    def _serialize(self, element, value):
+    def _serialize(self, element, value, state):
         """Serializes the dictionary appending all serialized children to the element"""
         for child in self._child_processors:
+            state.push_location(child.alias)
             child_value = value.get(child.alias)
-            child.serialize_on_parent(element, child_value)
+            child.serialize_on_parent(element, child_value, state)
+            state.pop_location()
 
 
 class _PrimitiveValue(object):
@@ -573,7 +579,7 @@ class _PrimitiveValue(object):
         element = parent.find(self.element_name)
         return self.parse_at_element(element, state)
 
-    def serialize(self, value):
+    def serialize(self, value, _state):
         """
         Serializes the value into a new element object and returns the element. If the omit_empty
         option was specified and the value is falsey, then this will return None.
@@ -584,11 +590,11 @@ class _PrimitiveValue(object):
         self._serialize(element, value)
         return element
 
-    def serialize_on_parent(self, parent, value):
+    def serialize_on_parent(self, parent, value, state):
         """Serializes the value adding it to the parent element"""
         # Note that falsey values are not treated as missing, but they may be omitted.
         if value is None and self.required:
-            raise MissingValue('Missing required value: "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, 'Missing required value for element "{}"'.format(self.element_name))
 
         if not value and self.omit_empty:
             return  # Do Nothing
@@ -733,7 +739,7 @@ def _parse_int(element_text, state):
 
 def _parse_string(strip_whitespace):
     """Returns a parser function for parsing string values"""
-    def _parse_string_value(element_text, state):
+    def _parse_string_value(element_text, _state):
         if element_text is None:
             value = ''
         elif strip_whitespace:

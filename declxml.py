@@ -238,7 +238,8 @@ def floating_point(element_name, attribute=None, required=True, alias=None, defa
 
     See also :func:`declxml.boolean`
     """
-    return _PrimitiveValue(element_name, _parse_float, attribute, required, alias, default, omit_empty)
+    value_parser = _number_parser(float)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False):
@@ -247,7 +248,8 @@ def integer(element_name, attribute=None, required=True, alias=None, default=0, 
 
     See also :func:`declxml.boolean`
     """
-    return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default, omit_empty)
+    value_parser = _number_parser(int)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None):
@@ -271,8 +273,8 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
 
     See also :func:`declxml.boolean`
     """
-    parser = _parse_string(strip_whitespace)
-    return _PrimitiveValue(element_name, parser, attribute, required, alias, default, omit_empty)
+    value_parser = _string_parser(strip_whitespace)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def user_object(element_name, cls, child_processors, required=True, alias=None):
@@ -769,6 +771,11 @@ def _element_path_create_new(element_path):
     return (start_element, end_element)
 
 
+def _is_valid_root_processor(processor):
+    """Returns True if the given XML processor can be used as a root processor"""
+    return hasattr(processor, 'parse_at_root')
+
+
 def _named_tuple_converter(tuple_type):
     """Returns an _AggregateConverter for named tuples of the given type"""
     def _from_dict(dict_value):
@@ -781,9 +788,18 @@ def _named_tuple_converter(tuple_type):
     return converter
 
 
-def _is_valid_root_processor(processor):
-    """Returns True if the given XML processor can be used as a root processor"""
-    return hasattr(processor, 'parse_at_root')
+def _number_parser(str_to_number_func):
+    """Returns a function to parse numbers"""
+    def _parse_number_value(element_text, state):
+        try:
+            value = str_to_number_func(element_text)
+        except (ValueError, TypeError):
+            state.raise_error(InvalidPrimitiveValue,
+                              'Invalid numeric value "{}"'.format(element_text))
+
+        return value
+
+    return _parse_number_value
 
 
 def _parse_boolean(element_text, state):
@@ -799,27 +815,7 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _parse_float(element_text, state):
-    """Parses the raw XML string as a floating point value"""
-    try:
-        value = float(element_text)
-    except (ValueError, TypeError):
-        state.raise_error(InvalidPrimitiveValue, 'Invalid float value "{}"'.format(element_text))
-
-    return value
-
-
-def _parse_int(element_text, state):
-    """Parses the raw XML string as an integer value"""
-    try:
-        value = int(element_text)
-    except (ValueError, TypeError):
-        state.raise_error(InvalidPrimitiveValue, 'Invalid integer value "{}"'.format(element_text))
-
-    return value
-
-
-def _parse_string(strip_whitespace):
+def _string_parser(strip_whitespace):
     """Returns a parser function for parsing string values"""
     def _parse_string_value(element_text, _state):
         if element_text is None:

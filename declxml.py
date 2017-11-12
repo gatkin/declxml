@@ -127,11 +127,16 @@ def serialize_to_string(root_processor, value, indent=None):
         raise InvalidRootProcessor('Invalid root processor')
 
     state = _ProcessorState()
+    state.push_location(root_processor.element_name)
+
     root = root_processor.serialize(value, state)
+
+    state.pop_location()
 
     serialized_value = ET.tostring(root)
 
-    # Since element tree does not support pretty printing XML, we use minidom to do the pretty printing
+    # Since element tree does not support pretty printing XML, we use minidom to do the pretty
+    # printing
     if indent:
         serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
 
@@ -442,7 +447,7 @@ class _Array(object):
             return
 
         for i, item_value in enumerate(value):
-            state.push_location(self._item_processor.alias, i)
+            state.push_location(self._item_processor.element_name, i)
             item_element = self._item_processor.serialize(item_value, state)
             array_parent.append(item_element)
             state.pop_location()
@@ -466,7 +471,7 @@ class _Dictionary(object):
 
         if element is not None:
             for child in self._child_processors:
-                state.push_location(child.alias)
+                state.push_location(child.element_name)
                 parsed_dict[child.alias] = child.parse_from_parent(element, state)
                 state.pop_location()
         elif self.required:
@@ -519,7 +524,7 @@ class _Dictionary(object):
     def _serialize(self, element, value, state):
         """Serializes the dictionary appending all serialized children to the element"""
         for child in self._child_processors:
-            state.push_location(child.alias)
+            state.push_location(child.element_name)
             child_value = value.get(child.alias)
             child.serialize_on_parent(element, child_value, state)
             state.pop_location()
@@ -599,13 +604,28 @@ class _PrimitiveValue(object):
         """Serializes the value adding it to the parent element"""
         # Note that falsey values are not treated as missing, but they may be omitted.
         if value is None and self.required:
-            state.raise_error(MissingValue, 'Missing required value for element "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, self._missing_value_message(parent))
 
         if not value and self.omit_empty:
             return  # Do Nothing
 
         element = _element_get_or_add_from_parent(parent, self.element_name)
         self._serialize(element, value)
+
+    def _missing_value_message(self, parent):
+        """Returns the message to use to report that value needed for serialization is missing"""
+        if self._attribute is None:
+            message = 'Missing required value for element "{}"'.format(self.element_name)
+        else:
+            if self.element_name == '.':
+                parent_name = parent.tag
+            else:
+                parent_name = self.element_name
+
+            message = 'Missing required value for attribute "{}" on element "{}"'.format(
+                self._attribute, parent_name)
+
+        return message
 
     def _parse_attribute(self, element, state):
         """Parses the primitive value within the XML element's attribute"""
@@ -615,7 +635,7 @@ class _PrimitiveValue(object):
             parsed_value = self._parser_func(attribute_value, state)
         elif self.required:
             state.raise_error(MissingValue, 'Missing required attribute "{}" on element "{}"'.format(
-                self._attribute, self.element_name))
+                self._attribute, element.tag))
 
         return parsed_value
 
@@ -664,7 +684,11 @@ class _ProcessorState(object):
         raise exception_type(error_message)
 
     def __repr__(self):
-        return '>'.join([_ProcessorState._location_to_string(location) for location in self._locations])
+        # Exclude the any locations specified with a dot which just means the "current location" from
+        # the path string.
+        location_strings = (_ProcessorState._location_to_string(location) for location in self._locations if
+                            location.element != '.')
+        return '/'.join(location_strings)
 
     @staticmethod
     def _location_to_string(location):

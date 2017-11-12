@@ -340,6 +340,13 @@ class _Array(object):
         else:
             self.alias = item_processor.alias
 
+        if self._nested:
+            self.element_name = self._nested
+        else:
+            self.element_name = '.'  # Array is embedded directly on parent
+
+        self._item_path = self.element_name + '/' + self._item_processor.element_name
+
         if not nested or self.required:
             self.omit_empty = False
             if omit_empty:
@@ -349,7 +356,8 @@ class _Array(object):
 
     def parse_at_element(self, element, state):
         """Parses the provided element as an array"""
-        return self._parse(element, state)
+        item_iter = element.findall(self._item_processor.element_name)
+        return self._parse(item_iter, state)
 
     def parse_at_root(self, root, state):
         """Parses the root XML element as an array"""
@@ -358,23 +366,20 @@ class _Array(object):
                 self.alias))
 
         parsed_array = []
-        if root.tag == self._nested:
+
+        array_element = _element_find_from_root(root, self._nested)
+        if array_element is not None:
             state.push_location(self._nested)
-            parsed_array = self._parse(root, state)
+            parsed_array = self.parse_at_element(array_element, state)
             state.pop_location()
         elif self.required:
-            raise MissingValue('Missing required array at root: "{}"'.format(self.alias))
+            raise MissingValue('Missing required array at root: "{}"'.format(self._nested))
 
         return parsed_array
 
     def parse_from_parent(self, parent, state):
         """Parses the array data from the provided parent XML element"""
-        if self._nested:
-            item_iter = parent.find(self._nested)
-        else:
-            # The array's items are embedded within the parent
-            item_iter = parent.findall(self._item_processor.element_name)
-
+        item_iter = parent.findall(self._item_path)
         return self._parse(item_iter, state)
 
     def serialize(self, value, state):
@@ -390,10 +395,10 @@ class _Array(object):
             state.raise_error(MissingValue, 'Missing required array: "{}"'.format(
                 self.alias))
 
-        element = ET.Element(self._nested)
-        self._serialize(element, value, state)
+        start_element, end_element = _element_path_create_new(self._nested)
+        self._serialize(end_element, value, state)
 
-        return element
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes value and appends it to the parent element"""
@@ -419,11 +424,10 @@ class _Array(object):
         """
         parsed_array = []
 
-        if item_iter is not None:
-            for i, item in enumerate(item_iter):
-                state.push_location(self._item_processor.alias, i)
-                parsed_array.append(self._item_processor.parse_at_element(item, state))
-                state.pop_location()
+        for i, item in enumerate(item_iter):
+            state.push_location(self._item_processor.element_name, i)
+            parsed_array.append(self._item_processor.parse_at_element(item, state))
+            state.pop_location()
 
         if not parsed_array and self.required:
             state.raise_error(MissingValue, 'Missing required array "{}"'.format(self.alias))
@@ -474,9 +478,10 @@ class _Dictionary(object):
         """Parses the root XML element as a dictionary"""
         parsed_dict = {}
 
-        if root.tag == self.element_name:
+        dict_element = _element_find_from_root(root, self.element_name)
+        if dict_element is not None:
             state.push_location(self.element_name)
-            parsed_dict = self.parse_at_element(root, state)
+            parsed_dict = self.parse_at_element(dict_element, state)
             state.pop_location()
         elif self.required:
             raise MissingValue('Missing required root aggregate "{}"'.format(self.element_name))
@@ -495,9 +500,9 @@ class _Dictionary(object):
         if not value and self.required:
             state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_name))
 
-        element = ET.Element(self.element_name)
-        self._serialize(element, value, state)
-        return element
+        start_element, end_element = _element_path_create_new(self.element_name)
+        self._serialize(end_element, value, state)
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes the value and adds it to the parent"""
@@ -586,9 +591,9 @@ class _PrimitiveValue(object):
         """
         # For primitive values, this is only called when the value is part of an array,
         # in which case we do not need to check for missing or omitted values.
-        element = ET.Element(self.element_name)
-        self._serialize(element, value)
-        return element
+        start_element, end_element = _element_path_create_new(self.element_name)
+        self._serialize(end_element, value)
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes the value adding it to the parent element"""
@@ -671,20 +676,73 @@ class _ProcessorState(object):
         return location_str
 
 
-def _element_get_or_add_from_parent(parent, element_name):
+def _element_append_path(start_element, element_names):
     """
-    If an element with the give name has already been added to the parent element,
-    then this returns the existing element. Otherwise, this will create a new element
-    with the given name, append it to the parent, and return the newly created element.
-    This allows for multiple values to be serialized to the same element which can occur
-    if an element has any attributes.
+    Appends the list of element names as a path to the provided start element. Returns the final
+    element along the path.
     """
-    element = parent.find(element_name)
-    if element is None:
-        element = ET.Element(element_name)
-        parent.append(element)
+    end_element = start_element
+    for element_name in element_names:
+        new_element = ET.Element(element_name)
+        end_element.append(new_element)
+        end_element = new_element
+
+    return end_element
+
+
+def _element_find_from_root(root, element_path):
+    """
+    Finds the element specified by the given path starting from the root element of the
+    document. The first component of the element path is expected to be the name of the
+    root element. Returns None if the element is not found.
+    """
+    element = None
+
+    element_names = element_path.split('/')
+    if element_names[0] == root.tag:
+        if len(element_names) > 1:
+            element = root.find('/'.join(element_names[1:]))
+        else:
+            element = root
 
     return element
+
+
+def _element_get_or_add_from_parent(parent, element_path):
+    """
+    Ensures all elements specified in the given path relative to the provided parent element exist,
+    creating new elements along the path only when needed. Returns the final element specified by
+    the path.
+    """
+    element_names = element_path.split('/')
+
+    # Starting from the parent, walk the element path until we find the first element in the path
+    # that does not exist. Create that element and all the elements following it in the path. If
+    # all elements along the path exist, then we will simply walk the full path to the final
+    # element we want to return.
+    previous_element = parent
+    for i, element_name in enumerate(element_names):
+        existing_element = previous_element.find(element_name)
+        if existing_element is None:
+            existing_element = _element_append_path(previous_element, element_names[i:])
+            break
+
+        previous_element = existing_element
+
+    return existing_element
+
+
+def _element_path_create_new(element_path):
+    """
+    Creates an entirely new element path. Returns a tuple where the first item is the first element
+    in the path, and the second item is the final element in the path.
+    """
+    element_names = element_path.split('/')
+
+    start_element = ET.Element(element_names[0])
+    end_element = _element_append_path(start_element, element_names[1:])
+
+    return (start_element, end_element)
 
 
 def _named_tuple_converter(tuple_type):
@@ -721,7 +779,7 @@ def _parse_float(element_text, state):
     """Parses the raw XML string as a floating point value"""
     try:
         value = float(element_text)
-    except ValueError:
+    except (ValueError, TypeError):
         state.raise_error(InvalidPrimitiveValue, 'Invalid float value "{}"'.format(element_text))
 
     return value
@@ -731,7 +789,7 @@ def _parse_int(element_text, state):
     """Parses the raw XML string as an integer value"""
     try:
         value = int(element_text)
-    except ValueError:
+    except (ValueError, TypeError):
         state.raise_error(InvalidPrimitiveValue, 'Invalid integer value "{}"'.format(element_text))
 
     return value

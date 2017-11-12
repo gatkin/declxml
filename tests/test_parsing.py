@@ -159,6 +159,29 @@ def test_parse_array_nested_empty_optional():
     assert expected == actual
 
 
+def test_parse_array_nested_missing_optional():
+    """Parse a nested missing array"""
+    xml_string = """
+    <root>
+        <message>Hello</message>
+    </root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('message'),
+        xml.array(xml.integer('number', required=False), nested='numbers')
+    ])
+
+    expected = {
+        'message': 'Hello',
+        'numbers': [],
+    }
+
+    actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
+
+
 def test_parse_array_of_arrays():
     """Parse array of arrays"""
     xml_string = """

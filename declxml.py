@@ -131,7 +131,7 @@ def serialize_to_string(root_processor, value, indent=None):
 
     serialized_value = ET.tostring(root)
 
-    # Since element tree not support pretty printing XML, we use minidom to do the pretty printing
+    # Since element tree does not support pretty printing XML, we use minidom to do the pretty printing
     if indent:
         serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
 
@@ -259,7 +259,7 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
 
 def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True):
     """
-    Creates a processor for integer values.
+    Creates a processor for string values.
 
     :param strip_whitespace: Indicates whether leading and trailing whitespace should be stripped
         from parsed string values.
@@ -777,3 +777,7 @@ def _xml_namespace_strip(root):
     for element in root.iter():
         if '}' in element.tag:
             element.tag = element.tag.split('}')[1]
+        else: # pragma: no cover
+            # We should never get here. If there is a namespace, then the namespace should be
+            # included in all elements.
+            pass

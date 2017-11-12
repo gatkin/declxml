@@ -250,7 +250,7 @@ Processors can be configured to omit missing or falsey values when serializing. 
 Arrays
 ------
 Processors can be defined for array values. When creating an array processor, a processor must be specified for processing
-the array's items. An array is treated as optional if its item processor is configured as optional. .
+the array's items. An array is treated as optional if its item processor is configured as optional.
 
 An array can either be *embedded* or *nested*. An embedded array is embedded directly within its parent.
 

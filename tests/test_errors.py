@@ -53,7 +53,7 @@ def test_parse_error_message():
     with pytest.raises(xml.MissingValue) as exception_info:
         xml.parse_from_string(_PROCESSOR, xml_string)
 
-    actual_message = exception_info.value.message
+    actual_message = str(exception_info.value)
     assert actual_message.endswith(expected_message)
 
 
@@ -95,5 +95,5 @@ def test_serialize_error_message():
     with pytest.raises(xml.MissingValue) as exception_info:
         xml.serialize_to_string(_PROCESSOR, author_data)
 
-    actual_message = exception_info.value.message
+    actual_message = str(exception_info.value)
     assert actual_message.endswith(expected_message)

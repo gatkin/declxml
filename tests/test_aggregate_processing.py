@@ -33,7 +33,7 @@ class Person(object):
                self.age == other.age and\
                self.gender == other.gender
 
-    def __repr__(self): # pragma: no cover
+    def __repr__(self):
         return 'Person(name={}, age={}, gender={}, pets={})'.format(
             self.name, self.age, self.gender, self.pets)
 

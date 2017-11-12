@@ -3,17 +3,37 @@ import declxml as xml
 from .helpers import strip_xml
 
 
-class TestDot(object):
+class _ProcessorTestCase(object):
+    """Base class for processor test cases"""
+
+    xml_string = None
+    value = None
+    processor = None
+
+    def test_parse(self):
+        """Tests parsing"""
+        actual_value = xml.parse_from_string(self.__class__.processor, self.__class__.xml_string)
+
+        assert self.__class__.value == actual_value
+
+    def test_serialize(self):
+        """Tests serializing"""
+        actual_xml_string = xml.serialize_to_string(self.__class__.processor, self.__class__.value)
+
+        assert self.__class__.xml_string == actual_xml_string
+
+
+class TestDot(_ProcessorTestCase):
     """Parse/serialize with dot specifier"""
 
-    _xml_string = strip_xml("""
+    xml_string = strip_xml("""
     <files>
         <file name="a.txt" size="236" />
         <file name="b.txt" size="7654" />
     </files>
     """)
 
-    _value = [
+    value = [
         {
             'name': 'a.txt',
             'size': 236,
@@ -24,28 +44,16 @@ class TestDot(object):
         }
     ]
 
-    _processor = xml.array(xml.dictionary('file', [
+    processor = xml.array(xml.dictionary('file', [
         xml.string('.', attribute='name'),
         xml.integer('.', attribute='size')
     ]), nested='files')
 
-    def test_parse_dot(self):
-        """Parse with dot specifier"""
-        actual_value = xml.parse_from_string(TestDot._processor, TestDot._xml_string)
 
-        assert TestDot._value == actual_value
-
-    def test_serialize_dot(self):
-        """Serialize with dot specifier"""
-        actual_xml_string = xml.serialize_to_string(TestDot._processor, TestDot._value)
-
-        assert TestDot._xml_string == actual_xml_string
-
-
-class TestMixed(object):
+class TestMixed(_ProcessorTestCase):
     """Process with a mix of specifiers"""
 
-    _xml_string = strip_xml("""
+    xml_string = strip_xml("""
     <location name="Kansas City">
         <coordinates>
             <lat>39.0997</lat>
@@ -54,35 +62,23 @@ class TestMixed(object):
     </location>
     """)
 
-    _value = {
+    value = {
         'name': 'Kansas City',
         'lat': 39.0997,
         'lon': 94.5786,
     }
 
-    _processor = xml.dictionary('location', [
+    processor = xml.dictionary('location', [
         xml.string('.', attribute='name'),
         xml.floating_point('coordinates/lat', alias='lat'),
         xml.floating_point('coordinates/lon', alias='lon')
     ])
 
-    def test_parse_mixed(self):
-        """Parse mix of specifiers"""
-        actual_value = xml.parse_from_string(TestMixed._processor, TestMixed._xml_string)
 
-        assert TestMixed._value == actual_value
-
-    def test_serialize_mixed(self):
-        """Serialize mix of specifiers"""
-        actual_xml_string = xml.serialize_to_string(TestMixed._processor, TestMixed._value)
-
-        assert TestMixed._xml_string == actual_xml_string
-
-
-class TestNestedSlash(object):
+class TestNestedSlash(_ProcessorTestCase):
     """Process with nested slash specifiers"""
 
-    _xml_string = strip_xml("""
+    xml_string = strip_xml("""
     <root>
         <place>
             <city>
@@ -98,37 +94,23 @@ class TestNestedSlash(object):
     </root>
     """)
 
-    _value = {
+    value = {
         'name': 'Kansas City',
         'lat': 39.0997,
         'lon': 94.5786,
     }
 
-    _processor = xml.dictionary('root', [
+    processor = xml.dictionary('root', [
         xml.string('place/city/name', alias='name'),
         xml.floating_point('place/city/location/coordinates/lat', alias='lat'),
         xml.floating_point('place/city/location/coordinates/lon', alias='lon')
     ])
 
-    def test_parse_nested_slash(self):
-        """Parse with nested slashes"""
-        actual_value = xml.parse_from_string(TestNestedSlash._processor,
-                                             TestNestedSlash._xml_string)
 
-        assert TestNestedSlash._value == actual_value
-
-    def test_serialize_nested_slash(self):
-        """Serialize with nested slashes"""
-        actual_xml_string = xml.serialize_to_string(TestNestedSlash._processor,
-                                                    TestNestedSlash._value)
-
-        assert TestNestedSlash._xml_string == actual_xml_string
-
-
-class TestSlash(object):
+class TestSlash(_ProcessorTestCase):
     """Process with slash specifier"""
 
-    _xml_string = strip_xml("""
+    xml_string = strip_xml("""
     <city>
         <name>Kansas City</name>
         <coordinates>
@@ -138,35 +120,102 @@ class TestSlash(object):
     </city>
     """)
 
-    _value = {
+    value = {
         'name': 'Kansas City',
         'lat': 39.0997,
         'lon': 94.5786,
     }
 
-    _processor = xml.dictionary('city', [
+    processor = xml.dictionary('city', [
         xml.string('name'),
         xml.floating_point('coordinates/lat', alias='lat'),
         xml.floating_point('coordinates/lon', alias='lon')
     ])
 
-    def test_parse_slash(self):
-        """Parse with slash specifier"""
-        actual_value = xml.parse_from_string(TestSlash._processor, TestSlash._xml_string)
 
-        assert TestSlash._value == actual_value
+class TestSlashArrayOfArrays(_ProcessorTestCase):
+    """Process with slashes to arrays of arrays"""
 
-    def test_serialize_slash(self):
-        """Serialize with slash specifier"""
-        actual_xml_string = xml.serialize_to_string(TestSlash._processor, TestSlash._value)
+    xml_string = strip_xml("""
+    <root>
+        <data>
+            <experiments>
+                <experiment>
+                    <results>
+                        <datapoints>
+                            <datapoint>
+                                <value>3</value>
+                            </datapoint>
+                            <datapoint>
+                                <value>1</value>
+                            </datapoint>
+                            <datapoint>
+                                <value>5</value>
+                            </datapoint>
+                        </datapoints>
+                    </results>
+                </experiment>
+                <experiment>
+                    <results>
+                        <datapoints>
+                            <datapoint>
+                                <value>49</value>
+                            </datapoint>
+                            <datapoint>
+                                <value>42</value>
+                            </datapoint>
+                        </datapoints>
+                    </results>
+                </experiment>
+            </experiments>
+        </data>
+    </root>
+    """)
 
-        assert TestSlash._xml_string == actual_xml_string
+    value = [
+        [3, 1, 5],
+        [49, 42]
+    ]
+
+    processor = xml.array(
+        xml.array(xml.integer('datapoint/value'), nested='experiment/results/datapoints'),
+        nested='root/data/experiments')
 
 
-class TestSlashFromRoot(object):
+class TestSlashDifferentLevels(_ProcessorTestCase):
+    """Process a slash to different levels of the same path"""
+
+    xml_string = strip_xml("""
+    <root>
+        <level1>
+            <level2>
+                <valueB>86</valueB>
+                <level3>
+                    <valueC>13</valueC>
+                </level3>
+            </level2>
+            <valueA>27</valueA>
+        </level1>
+    </root>
+    """)
+
+    value = {
+        'valueB': 86,
+        'valueA': 27,
+        'valueC': 13,
+    }
+
+    processor = xml.dictionary('root', [
+        xml.integer('level1/level2/valueB', alias='valueB'),
+        xml.integer('level1/valueA', alias='valueA'),
+        xml.integer('level1/level2/level3/valueC', alias='valueC')
+    ])
+
+
+class TestSlashFromRootArray(_ProcessorTestCase):
     """Process with a slash starting from the root element"""
 
-    _xml_string = strip_xml("""
+    xml_string = strip_xml("""
     <locations>
         <cities>
             <city name="Kansas City" state="MO" />
@@ -176,7 +225,7 @@ class TestSlashFromRoot(object):
     </locations>
     """)
 
-    _value = [
+    value = [
         {
             'name': 'Kansas City',
             'state': 'MO'
@@ -191,21 +240,136 @@ class TestSlashFromRoot(object):
         }
     ]
 
-    _processor = xml.array(xml.dictionary('city', [
+    processor = xml.array(xml.dictionary('city', [
         xml.string('.', attribute='name'),
         xml.string('.', attribute='state'),
     ]), nested='locations/cities', alias='cities')
 
-    def test_parse_slash_from_root(self):
-        """Parse with slash from root"""
-        actual_value = xml.parse_from_string(TestSlashFromRoot._processor,
-                                             TestSlashFromRoot._xml_string)
 
-        assert TestSlashFromRoot._value == actual_value
+class TestSlashFromRootDict(_ProcessorTestCase):
+    """Process with a slash starting from the root element"""
 
-    def test_serialize_slash_from_root(self):
-        """Serialize with slash from root"""
-        actual_xml_string = xml.serialize_to_string(TestSlashFromRoot._processor,
-                                                    TestSlashFromRoot._value)
+    xml_string = strip_xml("""
+    <location>
+        <city>
+            <name>Kansas City</name>
+            <coordinates>
+                <lat>39.0997</lat>
+                <lon>94.5786</lon>
+            </coordinates>
+        </city>
+    </location>
+    """)
 
-        assert TestSlashFromRoot._xml_string == actual_xml_string
+    value = {
+        'name': 'Kansas City',
+        'lat': 39.0997,
+        'lon': 94.5786,
+    }
+
+    processor = xml.dictionary('location/city', [
+        xml.string('name'),
+        xml.floating_point('coordinates/lat', alias='lat'),
+        xml.floating_point('coordinates/lon', alias='lon'),
+    ])
+
+
+class TestSlashPrimitiveInArray(_ProcessorTestCase):
+    """Process with a slash to a primitive value in an array"""
+
+    xml_string = strip_xml("""
+    <dataset>
+        <source>Census</source>
+        <person>
+            <demographics>
+                <age>23</age>
+            </demographics>
+        </person>
+        <person>
+            <demographics>
+                <age>27</age>
+            </demographics>
+        </person>
+        <person>
+            <demographics>
+                <age>31</age>
+            </demographics>
+        </person>
+    </dataset>
+    """)
+
+    value = {
+        'source': 'Census',
+        'ages': [23, 27, 31]
+    }
+
+    processor = xml.dictionary('dataset', [
+        xml.string('source'),
+        xml.array(xml.integer('person/demographics/age', alias='age'), alias='ages')
+    ])
+
+
+class TestSlashPrimitiveInNestedArray(_ProcessorTestCase):
+    """Process with a slash to a primitive value in an array"""
+
+    xml_string = strip_xml("""
+    <dataset>
+        <source>Census</source>
+        <people>
+            <person>
+                <demographics>
+                    <age>23</age>
+                </demographics>
+            </person>
+            <person>
+                <demographics>
+                    <age>27</age>
+                </demographics>
+            </person>
+            <person>
+                <demographics>
+                    <age>31</age>
+                </demographics>
+            </person>
+        </people>
+    </dataset>
+    """)
+
+    value = {
+        'source': 'Census',
+        'ages': [23, 27, 31]
+    }
+
+    processor = xml.dictionary('dataset', [
+        xml.string('source'),
+        xml.array(xml.integer('person/demographics/age', alias='age'), nested='people', alias='ages')
+    ])
+
+
+class TestSlashPrimitiveInNestedRootArray(_ProcessorTestCase):
+    """Process with a slash to a primitive value in an array"""
+
+    xml_string = strip_xml("""
+    <people>
+        <person>
+            <demographics>
+                <age>23</age>
+            </demographics>
+        </person>
+        <person>
+            <demographics>
+                <age>27</age>
+            </demographics>
+        </person>
+        <person>
+            <demographics>
+                <age>31</age>
+            </demographics>
+        </person>
+    </people>
+    """)
+
+    value = [23, 27, 31]
+
+    processor = xml.array(xml.integer('person/demographics/age', alias='age'), nested='people')
+

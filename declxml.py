@@ -180,7 +180,8 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
         If not specified, then the name of the item processor is used instead.
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
-        the array is treated as an embedded array.
+        the array is treated as an embedded array. Can also be specified using supported
+        XPath syntax.
     :param omit_empty: If True, then nested arrays will be omitted when serializing if
         they are empty. Only valid when nested is specified. Note that an empty array
         may only be omitted if it is not itself contained within an array. That is,
@@ -197,7 +198,8 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     """
     Creates a processor for boolean values.
 
-    :param element_name: Name of the XML element containing the value
+    :param element_name: Name of the XML element containing the value. Can also be specified
+        using supported XPath syntax.
     :param attribute: If specified, then the value is searched for under the
         attribute within the element specified by element_name. If not specified,
         then the value is searched for as the contents of the element specified by
@@ -220,7 +222,8 @@ def dictionary(element_name, children, required=True, alias=None):
     """
     Creates a processor for dictionary values.
 
-    :param element_name: Name of the XML element containing the dictionary value.
+    :param element_name: Name of the XML element containing the dictionary value. Can also be
+        specified using supported XPath syntax.
     :param children: List of declxml processor objects for processing the children
         contained within the dictionary.
     :param required: Indicates whether the value is required when parsing and serializing.

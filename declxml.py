@@ -127,11 +127,16 @@ def serialize_to_string(root_processor, value, indent=None):
         raise InvalidRootProcessor('Invalid root processor')
 
     state = _ProcessorState()
+    state.push_location(root_processor.element_path)
+
     root = root_processor.serialize(value, state)
+
+    state.pop_location()
 
     serialized_value = ET.tostring(root)
 
-    # Since element tree does not support pretty printing XML, we use minidom to do the pretty printing
+    # Since element tree does not support pretty printing XML, we use minidom to do the pretty
+    # printing
     if indent:
         serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
 
@@ -175,7 +180,8 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
         If not specified, then the name of the item processor is used instead.
     :param nested: If the array is a nested array, then this should be the name of
         the element under which all array items are located. If not specified, then
-        the array is treated as an embedded array.
+        the array is treated as an embedded array. Can also be specified using supported
+        XPath syntax.
     :param omit_empty: If True, then nested arrays will be omitted when serializing if
         they are empty. Only valid when nested is specified. Note that an empty array
         may only be omitted if it is not itself contained within an array. That is,
@@ -192,7 +198,8 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     """
     Creates a processor for boolean values.
 
-    :param element_name: Name of the XML element containing the value
+    :param element_name: Name of the XML element containing the value. Can also be specified
+        using supported XPath syntax.
     :param attribute: If specified, then the value is searched for under the
         attribute within the element specified by element_name. If not specified,
         then the value is searched for as the contents of the element specified by
@@ -215,7 +222,8 @@ def dictionary(element_name, children, required=True, alias=None):
     """
     Creates a processor for dictionary values.
 
-    :param element_name: Name of the XML element containing the dictionary value.
+    :param element_name: Name of the XML element containing the dictionary value. Can also be
+        specified using supported XPath syntax.
     :param children: List of declxml processor objects for processing the children
         contained within the dictionary.
     :param required: Indicates whether the value is required when parsing and serializing.
@@ -233,7 +241,8 @@ def floating_point(element_name, attribute=None, required=True, alias=None, defa
 
     See also :func:`declxml.boolean`
     """
-    return _PrimitiveValue(element_name, _parse_float, attribute, required, alias, default, omit_empty)
+    value_parser = _number_parser(float)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False):
@@ -242,7 +251,8 @@ def integer(element_name, attribute=None, required=True, alias=None, default=0, 
 
     See also :func:`declxml.boolean`
     """
-    return _PrimitiveValue(element_name, _parse_int, attribute, required, alias, default, omit_empty)
+    value_parser = _number_parser(int)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None):
@@ -266,8 +276,8 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
 
     See also :func:`declxml.boolean`
     """
-    parser = _parse_string(strip_whitespace)
-    return _PrimitiveValue(element_name, parser, attribute, required, alias, default, omit_empty)
+    value_parser = _string_parser(strip_whitespace)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
 
 
 def user_object(element_name, cls, child_processors, required=True, alias=None):
@@ -289,15 +299,15 @@ _AggregateConverter = namedtuple('_AggregateConverter', ['from_dict', 'to_dict']
 class _Aggregate(object):
     """An XML processor for processing aggregates"""
 
-    def __init__(self, element_name, converter, child_processors, required=True, alias=None):
-        self.element_name = element_name
+    def __init__(self, element_path, converter, child_processors, required=True, alias=None):
+        self.element_path = element_path
         self._converter = converter
         self.required = required
-        self._dictionary = _Dictionary(element_name, child_processors, required, alias)
+        self._dictionary = _Dictionary(element_path, child_processors, required, alias)
         if alias:
             self.alias = alias
         else:
-            self.alias = element_name
+            self.alias = element_path
 
     def parse_at_element(self, element, state):
         """Parses the provided element as an aggregate"""
@@ -340,6 +350,13 @@ class _Array(object):
         else:
             self.alias = item_processor.alias
 
+        if self._nested:
+            self.element_path = self._nested
+        else:
+            self.element_path = '.'  # Array is embedded directly on parent
+
+        self._item_path = self.element_path + '/' + self._item_processor.element_path
+
         if not nested or self.required:
             self.omit_empty = False
             if omit_empty:
@@ -349,7 +366,8 @@ class _Array(object):
 
     def parse_at_element(self, element, state):
         """Parses the provided element as an array"""
-        return self._parse(element, state)
+        item_iter = element.findall(self._item_processor.element_path)
+        return self._parse(item_iter, state)
 
     def parse_at_root(self, root, state):
         """Parses the root XML element as an array"""
@@ -358,23 +376,20 @@ class _Array(object):
                 self.alias))
 
         parsed_array = []
-        if root.tag == self._nested:
+
+        array_element = _element_find_from_root(root, self._nested)
+        if array_element is not None:
             state.push_location(self._nested)
-            parsed_array = self._parse(root, state)
+            parsed_array = self.parse_at_element(array_element, state)
             state.pop_location()
         elif self.required:
-            raise MissingValue('Missing required array at root: "{}"'.format(self.alias))
+            raise MissingValue('Missing required array at root: "{}"'.format(self._nested))
 
         return parsed_array
 
     def parse_from_parent(self, parent, state):
         """Parses the array data from the provided parent XML element"""
-        if self._nested:
-            item_iter = parent.find(self._nested)
-        else:
-            # The array's items are embedded within the parent
-            item_iter = parent.findall(self._item_processor.element_name)
-
+        item_iter = parent.findall(self._item_path)
         return self._parse(item_iter, state)
 
     def serialize(self, value, state):
@@ -390,10 +405,10 @@ class _Array(object):
             state.raise_error(MissingValue, 'Missing required array: "{}"'.format(
                 self.alias))
 
-        element = ET.Element(self._nested)
-        self._serialize(element, value, state)
+        start_element, end_element = _element_path_create_new(self._nested)
+        self._serialize(end_element, value, state)
 
-        return element
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes value and appends it to the parent element"""
@@ -419,11 +434,10 @@ class _Array(object):
         """
         parsed_array = []
 
-        if item_iter is not None:
-            for i, item in enumerate(item_iter):
-                state.push_location(self._item_processor.alias, i)
-                parsed_array.append(self._item_processor.parse_at_element(item, state))
-                state.pop_location()
+        for i, item in enumerate(item_iter):
+            state.push_location(self._item_processor.element_path, i)
+            parsed_array.append(self._item_processor.parse_at_element(item, state))
+            state.pop_location()
 
         if not parsed_array and self.required:
             state.raise_error(MissingValue, 'Missing required array "{}"'.format(self.alias))
@@ -438,7 +452,7 @@ class _Array(object):
             return
 
         for i, item_value in enumerate(value):
-            state.push_location(self._item_processor.alias, i)
+            state.push_location(self._item_processor.element_path, i)
             item_element = self._item_processor.serialize(item_value, state)
             array_parent.append(item_element)
             state.pop_location()
@@ -447,14 +461,14 @@ class _Array(object):
 class _Dictionary(object):
     """An XML processor for dictionary values"""
 
-    def __init__(self, element_name, child_processors, required=True, alias=None):
-        self.element_name = element_name
+    def __init__(self, element_path, child_processors, required=True, alias=None):
+        self.element_path = element_path
         self._child_processors = child_processors
         self.required = required
         if alias:
             self.alias = alias
         else:
-            self.alias = element_name
+            self.alias = element_path
 
     def parse_at_element(self, element, state):
         """Parses the provided element as a dictionary"""
@@ -462,11 +476,11 @@ class _Dictionary(object):
 
         if element is not None:
             for child in self._child_processors:
-                state.push_location(child.alias)
+                state.push_location(child.element_path)
                 parsed_dict[child.alias] = child.parse_from_parent(element, state)
                 state.pop_location()
         elif self.required:
-            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_path))
 
         return parsed_dict
 
@@ -474,18 +488,19 @@ class _Dictionary(object):
         """Parses the root XML element as a dictionary"""
         parsed_dict = {}
 
-        if root.tag == self.element_name:
-            state.push_location(self.element_name)
-            parsed_dict = self.parse_at_element(root, state)
+        dict_element = _element_find_from_root(root, self.element_path)
+        if dict_element is not None:
+            state.push_location(self.element_path)
+            parsed_dict = self.parse_at_element(dict_element, state)
             state.pop_location()
         elif self.required:
-            raise MissingValue('Missing required root aggregate "{}"'.format(self.element_name))
+            raise MissingValue('Missing required root aggregate "{}"'.format(self.element_path))
 
         return parsed_dict
 
     def parse_from_parent(self, parent, state):
         """Parses the dictionary data from the provided parent XML element"""
-        element = parent.find(self.element_name)
+        element = parent.find(self.element_path)
         return self.parse_at_element(element, state)
 
     def serialize(self, value, state):
@@ -493,28 +508,28 @@ class _Dictionary(object):
         Serializes the value to a new element and returns the element.
         """
         if not value and self.required:
-            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_path))
 
-        element = ET.Element(self.element_name)
-        self._serialize(element, value, state)
-        return element
+        start_element, end_element = _element_path_create_new(self.element_path)
+        self._serialize(end_element, value, state)
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes the value and adds it to the parent"""
         if not value and self.required:
             state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(
-                self.element_name))
+                self.element_path))
 
         if not value:
             return  # Do Nothing
 
-        element = _element_get_or_add_from_parent(parent, self.element_name)
+        element = _element_get_or_add_from_parent(parent, self.element_path)
         self._serialize(element, value, state)
 
     def _serialize(self, element, value, state):
         """Serializes the dictionary appending all serialized children to the element"""
         for child in self._child_processors:
-            state.push_location(child.alias)
+            state.push_location(child.element_path)
             child_value = value.get(child.alias)
             child.serialize_on_parent(element, child_value, state)
             state.pop_location()
@@ -523,18 +538,18 @@ class _Dictionary(object):
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
-    def __init__(self, element_name, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False):
+    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False):
         """
-        :param element_name: Name of the XML element containing the value.
+        :param element_path: Path to XML element containing the value.
         :param parser_func: Function to parse the raw XML value. Should take a string and return
             the value parsed from the raw string.
         :param required: Indicates whether the value is required.
-        :param alias: Alternative name to give to the value. If not specified, element_name is used.
+        :param alias: Alternative name to give to the value. If not specified, element_path is used.
         :param default: Default value. Only valid if required is False.
         :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if required is
             False.
         """
-        self.element_name = element_name
+        self.element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
@@ -545,7 +560,7 @@ class _PrimitiveValue(object):
         elif attribute:
             self.alias = attribute
         else:
-            self.alias = element_name
+            self.alias = element_path
 
         # If a value is required, then it will never be omitted when serialized. This
         # is to ensure that data that is serialized by a processor can also be parsed
@@ -570,13 +585,13 @@ class _PrimitiveValue(object):
             else:
                 parsed_value = self._parser_func(element.text, state)
         elif self.required:
-            state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_path))
 
         return parsed_value
 
     def parse_from_parent(self, parent, state):
         """Parses the primitive value under the provided parent XML element"""
-        element = parent.find(self.element_name)
+        element = parent.find(self.element_path)
         return self.parse_at_element(element, state)
 
     def serialize(self, value, _state):
@@ -586,21 +601,36 @@ class _PrimitiveValue(object):
         """
         # For primitive values, this is only called when the value is part of an array,
         # in which case we do not need to check for missing or omitted values.
-        element = ET.Element(self.element_name)
-        self._serialize(element, value)
-        return element
+        start_element, end_element = _element_path_create_new(self.element_path)
+        self._serialize(end_element, value)
+        return start_element
 
     def serialize_on_parent(self, parent, value, state):
         """Serializes the value adding it to the parent element"""
         # Note that falsey values are not treated as missing, but they may be omitted.
         if value is None and self.required:
-            state.raise_error(MissingValue, 'Missing required value for element "{}"'.format(self.element_name))
+            state.raise_error(MissingValue, self._missing_value_message(parent))
 
         if not value and self.omit_empty:
             return  # Do Nothing
 
-        element = _element_get_or_add_from_parent(parent, self.element_name)
+        element = _element_get_or_add_from_parent(parent, self.element_path)
         self._serialize(element, value)
+
+    def _missing_value_message(self, parent):
+        """Returns the message to use to report that value needed for serialization is missing"""
+        if self._attribute is None:
+            message = 'Missing required value for element "{}"'.format(self.element_path)
+        else:
+            if self.element_path == '.':
+                parent_name = parent.tag
+            else:
+                parent_name = self.element_path
+
+            message = 'Missing required value for attribute "{}" on element "{}"'.format(
+                self._attribute, parent_name)
+
+        return message
 
     def _parse_attribute(self, element, state):
         """Parses the primitive value within the XML element's attribute"""
@@ -610,7 +640,7 @@ class _PrimitiveValue(object):
             parsed_value = self._parser_func(attribute_value, state)
         elif self.required:
             state.raise_error(MissingValue, 'Missing required attribute "{}" on element "{}"'.format(
-                self._attribute, self.element_name))
+                self._attribute, element.tag))
 
         return parsed_value
 
@@ -648,9 +678,9 @@ class _ProcessorState(object):
         """Pops the most recently pushed location from the state's stack of locations"""
         return self._locations.pop()
 
-    def push_location(self, element_name, array_index=None):
+    def push_location(self, element_path, array_index=None):
         """Pushes an item onto the state's stack of locations"""
-        location = _ProcessorState._Location(element=element_name, array_index=array_index)
+        location = _ProcessorState._Location(element=element_path, array_index=array_index)
         self._locations.append(location)
 
     def raise_error(self, exception_type, message):
@@ -659,7 +689,11 @@ class _ProcessorState(object):
         raise exception_type(error_message)
 
     def __repr__(self):
-        return '>'.join([_ProcessorState._location_to_string(location) for location in self._locations])
+        # Exclude the any locations specified with a dot which just means the "current location" from
+        # the path string.
+        location_strings = (_ProcessorState._location_to_string(location) for location in self._locations if
+                            location.element != '.')
+        return '/'.join(location_strings)
 
     @staticmethod
     def _location_to_string(location):
@@ -671,20 +705,78 @@ class _ProcessorState(object):
         return location_str
 
 
-def _element_get_or_add_from_parent(parent, element_name):
+def _element_append_path(start_element, element_names):
     """
-    If an element with the give name has already been added to the parent element,
-    then this returns the existing element. Otherwise, this will create a new element
-    with the given name, append it to the parent, and return the newly created element.
-    This allows for multiple values to be serialized to the same element which can occur
-    if an element has any attributes.
+    Appends the list of element names as a path to the provided start element. Returns the final
+    element along the path.
     """
-    element = parent.find(element_name)
-    if element is None:
-        element = ET.Element(element_name)
-        parent.append(element)
+    end_element = start_element
+    for element_name in element_names:
+        new_element = ET.Element(element_name)
+        end_element.append(new_element)
+        end_element = new_element
+
+    return end_element
+
+
+def _element_find_from_root(root, element_path):
+    """
+    Finds the element specified by the given path starting from the root element of the
+    document. The first component of the element path is expected to be the name of the
+    root element. Returns None if the element is not found.
+    """
+    element = None
+
+    element_names = element_path.split('/')
+    if element_names[0] == root.tag:
+        if len(element_names) > 1:
+            element = root.find('/'.join(element_names[1:]))
+        else:
+            element = root
 
     return element
+
+
+def _element_get_or_add_from_parent(parent, element_path):
+    """
+    Ensures all elements specified in the given path relative to the provided parent element exist,
+    creating new elements along the path only when needed. Returns the final element specified by
+    the path.
+    """
+    element_names = element_path.split('/')
+
+    # Starting from the parent, walk the element path until we find the first element in the path
+    # that does not exist. Create that element and all the elements following it in the path. If
+    # all elements along the path exist, then we will simply walk the full path to the final
+    # element we want to return.
+    previous_element = parent
+    for i, element_name in enumerate(element_names):
+        existing_element = previous_element.find(element_name)
+        if existing_element is None:
+            existing_element = _element_append_path(previous_element, element_names[i:])
+            break
+
+        previous_element = existing_element
+
+    return existing_element
+
+
+def _element_path_create_new(element_path):
+    """
+    Creates an entirely new element path. Returns a tuple where the first item is the first element
+    in the path, and the second item is the final element in the path.
+    """
+    element_names = element_path.split('/')
+
+    start_element = ET.Element(element_names[0])
+    end_element = _element_append_path(start_element, element_names[1:])
+
+    return (start_element, end_element)
+
+
+def _is_valid_root_processor(processor):
+    """Returns True if the given XML processor can be used as a root processor"""
+    return hasattr(processor, 'parse_at_root')
 
 
 def _named_tuple_converter(tuple_type):
@@ -699,9 +791,18 @@ def _named_tuple_converter(tuple_type):
     return converter
 
 
-def _is_valid_root_processor(processor):
-    """Returns True if the given XML processor can be used as a root processor"""
-    return hasattr(processor, 'parse_at_root')
+def _number_parser(str_to_number_func):
+    """Returns a function to parse numbers"""
+    def _parse_number_value(element_text, state):
+        try:
+            value = str_to_number_func(element_text)
+        except (ValueError, TypeError):
+            state.raise_error(InvalidPrimitiveValue,
+                              'Invalid numeric value "{}"'.format(element_text))
+
+        return value
+
+    return _parse_number_value
 
 
 def _parse_boolean(element_text, state):
@@ -717,27 +818,7 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _parse_float(element_text, state):
-    """Parses the raw XML string as a floating point value"""
-    try:
-        value = float(element_text)
-    except ValueError:
-        state.raise_error(InvalidPrimitiveValue, 'Invalid float value "{}"'.format(element_text))
-
-    return value
-
-
-def _parse_int(element_text, state):
-    """Parses the raw XML string as an integer value"""
-    try:
-        value = int(element_text)
-    except ValueError:
-        state.raise_error(InvalidPrimitiveValue, 'Invalid integer value "{}"'.format(element_text))
-
-    return value
-
-
-def _parse_string(strip_whitespace):
+def _string_parser(strip_whitespace):
     """Returns a parser function for parsing string values"""
     def _parse_string_value(element_text, _state):
         if element_text is None:

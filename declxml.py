@@ -785,7 +785,10 @@ def _named_tuple_converter(tuple_type):
         return tuple_type(**dict_value)
 
     def _to_dict(value):
-        return value._asdict()
+        if value:
+            return value._asdict()
+        else:
+            return {}
 
     converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
     return converter
@@ -844,7 +847,10 @@ def _user_object_converter(cls):
         return object_value
 
     def _to_dict(value):
-        return value.__dict__
+        if value:
+            return value.__dict__
+        else:
+            return {}
 
     converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
     return converter

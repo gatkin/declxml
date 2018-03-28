@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 declxml is a library for declaratively processing XML documents.
 
@@ -45,6 +46,8 @@ Exceptions
 """
 from collections import namedtuple
 import warnings
+import sys
+from io import open
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
@@ -65,7 +68,7 @@ class MissingValue(XmlError):
     """Represents errors due to missing required values"""
 
 
-def parse_from_file(root_processor, xml_file_path):
+def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
     """
     Parses the XML file using the processor starting from the root of the document.
 
@@ -74,7 +77,7 @@ def parse_from_file(root_processor, xml_file_path):
 
     :return: Parsed value.
     """
-    with open(xml_file_path, 'rb') as xml_file:
+    with open(xml_file_path, 'r', encoding=encoding) as xml_file:
         xml_string = xml_file.read()
 
     parsed_value = parse_from_string(root_processor, xml_string)
@@ -93,6 +96,9 @@ def parse_from_string(root_processor, xml_string):
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
+    if sys.version_info[0] == 2 and isinstance(xml_string, unicode):
+        xml_string = xml_string.encode('utf-8')
+
     root = ET.fromstring(xml_string)
     _xml_namespace_strip(root)
 
@@ -100,7 +106,7 @@ def parse_from_string(root_processor, xml_string):
     return root_processor.parse_at_root(root, state)
 
 
-def serialize_to_file(root_processor, value, xml_file_path, indent=None):
+def serialize_to_file(root_processor, value, xml_file_path, encoding='utf-8', indent=None):
     """
     Serializes the value to an XML file using the root processor.
 
@@ -109,13 +115,15 @@ def serialize_to_file(root_processor, value, xml_file_path, indent=None):
     :param xml_file_path: Path to the XML file to which the serialized value will be written.
     :param indent: If specified, then the XML will be formatted with the specified indentation.
     """
-    serialized_value = serialize_to_string(root_processor, value, indent)
+    serialized_value = serialize_to_string(root_processor, value, indent,encoding=encoding)
 
-    with open(xml_file_path, 'wb') as xml_file:
+    serialized_value = serialized_value.decode('utf-8')
+
+    with open(xml_file_path, 'w', encoding=encoding) as xml_file:
         xml_file.write(serialized_value)
 
 
-def serialize_to_string(root_processor, value, indent=None):
+def serialize_to_string(root_processor, value, indent=None, encoding='utf-8'):
     """
     Serializes the value to an XML string using the root processor.
 
@@ -133,7 +141,7 @@ def serialize_to_string(root_processor, value, indent=None):
 
     state.pop_location()
 
-    serialized_value = ET.tostring(root)
+    serialized_value = ET.tostring(root, encoding=encoding)
 
     # Since element tree does not support pretty printing XML, we use minidom to do the pretty
     # printing
@@ -655,7 +663,10 @@ class _PrimitiveValue(object):
             else:
                 serialized_value = str(self._default)
         else:
-            serialized_value = str(value)
+            if sys.version_info[0] == 2:
+                serialized_value = unicode(value)
+            else:
+                serialized_value = str(value)
 
         if self._attribute:
             element.set(self._attribute, serialized_value)

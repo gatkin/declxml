@@ -1089,6 +1089,6 @@ def test_parse_from_file_unicode():
         'value': u'Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘',
     }
 
-    actual = xml.parse_from_file(processor, 'test_files/test_unicode.xml')
+    actual = xml.parse_from_file(processor, 'tests/test_files/test_unicode.xml')
 
     assert expected == actual

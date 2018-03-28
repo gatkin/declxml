@@ -1165,10 +1165,10 @@ def test_serialize_to_file_unicode():
 
     expected = u"""<root><boolean>True</boolean><float>3.14</float><int>1</int><string>Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘</string></root>"""
 
-    xml.serialize_to_file(processor, value, 'test_files/test_unicode_write.xml')
+    xml.serialize_to_file(processor, value, 'tests/test_files/test_unicode_write.xml')
 
     # Ensure the file contents match what is expected.
-    with open('test_files/test_unicode_write.xml','r',encoding='utf-8') as xml_file:
+    with open('tests/test_files/test_unicode_write.xml','r',encoding='utf-8') as xml_file:
         actual = xml_file.read()
 
     assert expected == actual

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Contains unit tests for parsing logic"""
 import pytest
 
@@ -1053,5 +1054,41 @@ def test_parse_string_strip_whitespace():
     }
 
     actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
+
+def test_parse_string_unicode():
+    """Parses a string value stripping whitespace"""
+    xml_string = u"""
+    <root>
+        <value>Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘! </value>
+    </root>
+    """
+
+    processor = xml.dictionary('root', [
+        xml.string('value')
+    ])
+
+    expected = {
+        'value': u'Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘!',
+    }
+
+    actual = xml.parse_from_string(processor, xml_string)
+
+    assert expected == actual
+
+
+def test_parse_from_file_unicode():
+    """Tests parsing an XML file"""
+
+    processor = xml.dictionary('root', [
+        xml.string('value'),
+    ])
+
+    expected = {
+        'value': u'Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘',
+    }
+
+    actual = xml.parse_from_file(processor, 'tests/test_files/test_unicode.xml')
 
     assert expected == actual

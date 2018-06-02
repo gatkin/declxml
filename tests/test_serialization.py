@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 """Contains unit tests for serialization logic"""
 import os
+from io import open
 
 import pytest
 
@@ -1142,5 +1144,31 @@ def test_serialize_to_file(tmpdir):
     # Ensure the file contents match what is expected.
     xml_file = tmpdir.join(xml_file_name)
     actual = xml_file.read_binary()
+
+    assert expected == actual
+
+def test_serialize_to_file_unicode():
+    """Serialize XML data to a file"""
+    value = {
+        'boolean': True,
+        'float': 3.14,
+        'int': 1,
+        'string': u'Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘'
+    }
+
+    processor = xml.dictionary('root', [
+        xml.boolean('boolean'),
+        xml.floating_point('float'),
+        xml.integer('int'),
+        xml.string('string'),
+    ])
+
+    expected = u"""<root><boolean>True</boolean><float>3.14</float><int>1</int><string>Ḩ̵̛͇̞͖̹̯͓̙̮͙͙̇̽̈̈́͌̅̔͆e̵̢̫̪̬͖̹̤̘̖̥̮͙̮͖̫̒̈́̓͋̈́ĺ̷̗͖̘̞̦̹͉̩͋͗̑̈́̚͝l̷̢̩̮̳̞̺̳̣̹̜̒̒̈́̈́̓̑́̅̚o̷̫̾,̸̙̪̰̘̩̹͈̼̔̀̀͋̈́̅̎̕͘͝͝ ̷͉͔̿͋͑́͑̅̎͆͌́͝͝W̶̡̯̫̞̭̰̩̦̝̹̰̥̱͑͌̃͂̽̑͐̔͋͑̽͘̚͜͝͝o̴̖̮̪̰̦̝̅̈́̌̇͆͆̓̂̽̓̕̕̚͝r̸̛̭͈̞̤̟̮̿͛͑̍̌͛̓̆̊l̵̡͎̗͈͚̠̝͉̭̩̳̅̀̾̍̾́̍̚ḑ̷̯̀̾́́͘!̴̨͖̥͕̣̮̩͍̜̈́̌̎̿̀̽̒͆̓͐̄̓͛͘</string></root>"""
+
+    xml.serialize_to_file(processor, value, 'tests/test_files/test_unicode_write.xml')
+
+    # Ensure the file contents match what is expected.
+    with open('tests/test_files/test_unicode_write.xml','r',encoding='utf-8') as xml_file:
+        actual = xml_file.read()
 
     assert expected == actual

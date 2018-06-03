@@ -1,6 +1,7 @@
 # declxml - Declarative XML Processing
 [![PyPI version](https://badge.fury.io/py/declxml.svg)](https://badge.fury.io/py/declxml)
 [![Build Status](https://travis-ci.org/gatkin/declxml.svg?branch=master)](https://travis-ci.org/gatkin/declxml)
+[![Build status](https://ci.appveyor.com/api/projects/status/00dndldkr0k2if5f?svg=true)](https://ci.appveyor.com/project/gatkin/declxml)
 [![codecov](https://codecov.io/gh/gatkin/declxml/branch/master/graph/badge.svg)](https://codecov.io/gh/gatkin/declxml)
 [![Documentation Status](https://readthedocs.org/projects/declxml/badge/?version=latest)](https://declxml.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://pypi.python.org/pypi/declxml/)

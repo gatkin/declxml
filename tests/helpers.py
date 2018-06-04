@@ -8,4 +8,4 @@ def strip_xml(xml_string):
     stripped = re.sub(r'>\s+<', '><', xml_string)
 
     # Strip external whitespace
-    return stripped.strip().encode('utf8')
+    return stripped.strip()

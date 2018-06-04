@@ -115,15 +115,13 @@ def serialize_to_file(root_processor, value, xml_file_path, encoding='utf-8', in
     :param xml_file_path: Path to the XML file to which the serialized value will be written.
     :param indent: If specified, then the XML will be formatted with the specified indentation.
     """
-    serialized_value = serialize_to_string(root_processor, value, indent,encoding=encoding)
-
-    serialized_value = serialized_value.decode('utf-8')
+    serialized_value = serialize_to_string(root_processor, value, indent)
 
     with open(xml_file_path, 'w', encoding=encoding) as xml_file:
         xml_file.write(serialized_value)
 
 
-def serialize_to_string(root_processor, value, indent=None, encoding='utf-8'):
+def serialize_to_string(root_processor, value, indent=None):
     """
     Serializes the value to an XML string using the root processor.
 
@@ -141,14 +139,16 @@ def serialize_to_string(root_processor, value, indent=None, encoding='utf-8'):
 
     state.pop_location()
 
-    serialized_value = ET.tostring(root, encoding=encoding)
+    # Always encode to UTF-8 because element tree does not support other
+    # encodings in earlier Python versions. See: https://bugs.python.org/issue1767933
+    serialized_value = ET.tostring(root, encoding='utf-8')
 
     # Since element tree does not support pretty printing XML, we use minidom to do the pretty
     # printing
     if indent:
-        serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent)
+        serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent, encoding='utf-8')
 
-    return serialized_value
+    return serialized_value.decode('utf-8')
 
 
 def array(item_processor, alias=None, nested=None, omit_empty=False):

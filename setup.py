@@ -1,11 +1,26 @@
 """Defines the setup for the declxml library"""
+from io import open
+import os.path
 from setuptools import setup
+
+
+readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+with open(readme_path, encoding='utf-8') as readme:
+    long_description = readme.read()
+
 
 setup(
     name='declxml',
     description='Declarative XML processing library',
-    version='0.11.0',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    version='1.0',
     url='http://declxml.readthedocs.io/',
+    project_urls={
+        'Documentation': 'http://declxml.readthedocs.io/',
+        'Source': 'https://github.com/gatkin/declxml',
+        'Tracker': 'https://github.com/gatkin/declxml/issues',
+    },
     author='Greg Atkin',
     author_email='greg.scott.atkin@gmail.com',
     license='MIT',

@@ -45,27 +45,31 @@ Exceptions
 .. autoexception:: declxml.MissingValue
 """
 from collections import namedtuple
-import warnings
-import sys
 from io import open
+import sys
+import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
 
 class XmlError(Exception):
     """Base error class representing errors processing XML data"""
+    pass
 
 
 class InvalidPrimitiveValue(XmlError):
     """Represents errors due to invalid primitive values"""
+    pass
 
 
 class InvalidRootProcessor(XmlError):
     """Represents errors due to invalid root processors"""
+    pass
 
 
 class MissingValue(XmlError):
     """Represents errors due to missing required values"""
+    pass
 
 
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
@@ -74,6 +78,7 @@ def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
 
     :param root_processor: Root processor of the XML document.
     :param xml_file_path: Path to XML file to parse.
+    :param encoding: Encoding of the file.
 
     :return: Parsed value.
     """
@@ -113,6 +118,7 @@ def serialize_to_file(root_processor, value, xml_file_path, encoding='utf-8', in
     :param root_processor: Root processor of the XML document.
     :param value: Value to serialize.
     :param xml_file_path: Path to the XML file to which the serialized value will be written.
+    :param encoding: Encoding of the file.
     :param indent: If specified, then the XML will be formatted with the specified indentation.
     """
     serialized_value = serialize_to_string(root_processor, value, indent)

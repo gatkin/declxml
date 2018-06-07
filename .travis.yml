@@ -17,10 +17,10 @@ after_success:
 - codecov
 deploy:
   provider: pypi
+  server: https://test.pypi.org/legacy/
   user: gatkin
   password:
     secure: XLPngXEqWSMNQRBWaXmfAl3ze3ZxqEhKegtrXJCh0ZhVUB0nMcGF6v5FRG1QexGodEykumg0MHqtIQwdicCii+O7+kBPxVS5Vv9ELzc5+nMcNNb4XPz+1gb9Y5driSTQzJ0SAUHfQtyJ11mnFXL4XJVYu7L1DNPrfWiM/BrRLFP261yoHwM5atn44opE+wUT70aoPmEWOjBW1s9DYeocZfVojGcDW809/BDYjiMtsTJrA9/eNCJnPQ+Unv5GrcbXd4DLbnotxPgPUdPawb6VNlE5Ar6eE/70NY0SOOXwN/cqeddYS5yCPOElRGX1x44PuNmlyikDeBUNfgZLEmfKx8eJRe3Yown5xP5PesrKwsnBh3hPBWA2IY17EKi34BBozyJgPrt8Q6nT+e/pqFkBFbE5emXD0d9tz/Xjf2ss+oSeSPDbJ1H7K8Idp/mwjitpvtGxsBGWzrhVhNqI/SPpzzpWB5RHIzADy5urs1vvo+pDhcqLic/WwVdNSUr/aUEX4kVFlgp/z7+YD1vaJ5Xj6RrnJ7pVfKQAVPczMm1TiVY30WYwlzo0LOOVOwI9qvGREH98/TXV9BP1sBE+KmBDrHEDeJ3TNjuNPYkBF8uos9UYntnSJK1ZJXRY5JreQZMb6CDv+6J/jHnb2wCOVO+rZciGPDZxxLwzZ0+iBjhRQ+w=
   on:
     python: '3.6'
     branch: travis-deploy
-    server: https://test.pypi.org/legacy/

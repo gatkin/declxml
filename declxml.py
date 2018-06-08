@@ -72,6 +72,16 @@ class MissingValue(XmlError):
     pass
 
 
+ValueMapper = namedtuple('ValueMapper', [
+    'from_xml_data',
+    'to_xml_data',
+])
+
+
+_IDENTITY = lambda x: x 
+_IDENTITY_VALUE_MAPPER = ValueMapper(from_xml_data=_IDENTITY, to_xml_data=_IDENTITY)
+
+
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
     """
     Parses the XML file using the processor starting from the root of the document.
@@ -157,7 +167,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False):
+def array(item_processor, alias=None, nested=None, omit_empty=False, mapper=None):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -205,7 +215,7 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
 
     :return: A declxml processor object.
     """
-    return _Array(item_processor, alias, nested, omit_empty)
+    return _Array(item_processor, alias, nested, omit_empty, mapper)
 
 
 def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False):
@@ -232,7 +242,7 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty)
 
 
-def dictionary(element_name, children, required=True, alias=None):
+def dictionary(element_name, children, required=True, alias=None, mapper=None):
     """
     Creates a processor for dictionary values.
 
@@ -246,7 +256,7 @@ def dictionary(element_name, children, required=True, alias=None):
 
     :return: A declxml processor object.
     """
-    return _Dictionary(element_name, children, required, alias)
+    return _Dictionary(element_name, children, required, alias, mapper)
 
 
 def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False):
@@ -352,7 +362,7 @@ class _Aggregate(object):
 class _Array(object):
     """An XML processor for Array values"""
 
-    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
+    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False, mapper=None):
         self._item_processor = item_processor
         self._nested = nested
         self.required = item_processor.required
@@ -378,6 +388,11 @@ class _Array(object):
         else:
             self.omit_empty = omit_empty
 
+        if mapper:
+            self.mapper = mapper
+        else:
+            self.mapper = _IDENTITY_VALUE_MAPPER
+
     def parse_at_element(self, element, state):
         """Parses the provided element as an array"""
         item_iter = element.findall(self._item_processor.element_path)
@@ -389,8 +404,6 @@ class _Array(object):
             raise InvalidRootProcessor('Non-nested array "{}" cannot be root element'.format(
                 self.alias))
 
-        parsed_array = []
-
         array_element = _element_find_from_root(root, self._nested)
         if array_element is not None:
             state.push_location(self._nested)
@@ -398,6 +411,8 @@ class _Array(object):
             state.pop_location()
         elif self.required:
             raise MissingValue('Missing required array at root: "{}"'.format(self._nested))
+        else:
+            parsed_array = self.mapper.from_xml_data([])
 
         return parsed_array
 
@@ -456,7 +471,7 @@ class _Array(object):
         if not parsed_array and self.required:
             state.raise_error(MissingValue, 'Missing required array "{}"'.format(self.alias))
 
-        return parsed_array
+        return self.mapper.from_xml_data(parsed_array)
 
     def _serialize(self, array_parent, value, state):
         """Serializes the array value adding it to the array parent element"""
@@ -465,7 +480,9 @@ class _Array(object):
             # None value.
             return
 
-        for i, item_value in enumerate(value):
+        xml_array = self.mapper.to_xml_data(value)
+
+        for i, item_value in enumerate(xml_array):
             state.push_location(self._item_processor.element_path, i)
             item_element = self._item_processor.serialize(item_value, state)
             array_parent.append(item_element)
@@ -475,14 +492,20 @@ class _Array(object):
 class _Dictionary(object):
     """An XML processor for dictionary values"""
 
-    def __init__(self, element_path, child_processors, required=True, alias=None):
+    def __init__(self, element_path, child_processors, required=True, alias=None, mapper=None):
         self.element_path = element_path
         self._child_processors = child_processors
         self.required = required
+        
         if alias:
             self.alias = alias
         else:
             self.alias = element_path
+
+        if mapper:
+            self.mapper = mapper
+        else:
+            self.mapper = _IDENTITY_VALUE_MAPPER
 
     def parse_at_element(self, element, state):
         """Parses the provided element as a dictionary"""
@@ -496,12 +519,10 @@ class _Dictionary(object):
         elif self.required:
             state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_path))
 
-        return parsed_dict
+        return self.mapper.from_xml_data(parsed_dict)
 
     def parse_at_root(self, root, state):
         """Parses the root XML element as a dictionary"""
-        parsed_dict = {}
-
         dict_element = _element_find_from_root(root, self.element_path)
         if dict_element is not None:
             state.push_location(self.element_path)
@@ -509,6 +530,8 @@ class _Dictionary(object):
             state.pop_location()
         elif self.required:
             raise MissingValue('Missing required root aggregate "{}"'.format(self.element_path))
+        else:
+            parsed_dict = self.mapper.from_xml_data({})
 
         return parsed_dict
 
@@ -542,9 +565,11 @@ class _Dictionary(object):
 
     def _serialize(self, element, value, state):
         """Serializes the dictionary appending all serialized children to the element"""
+        xml_value = self.mapper.to_xml_data(value)
+
         for child in self._child_processors:
             state.push_location(child.element_path)
-            child_value = value.get(child.alias)
+            child_value = xml_value.get(child.alias)
             child.serialize_on_parent(element, child_value, state)
             state.pop_location()
 

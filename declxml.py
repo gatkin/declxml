@@ -72,6 +72,50 @@ class MissingValue(XmlError):
     pass
 
 
+class ValueMapping(object):
+    """
+    Contains functions used to transform and map values when parsing and serializing.
+
+    A ValueMapper object contains two functions: from_xml and to_xml. Both of these functions
+    receive one argument and should return one value.
+
+    The from_xml function will receive the value parsed by the processor from the XML data during
+    parsing. The from_xml function can then perform any arbitrary transformation of the parsed
+    value and return it. The returned transformed value will then be used as the result of the
+    processor's parsing.
+
+    Similarly, the to_xml value will receive the value to be serialized to XML by the processor
+    during serialization. The to_xml function should transform the value into a shape that can be
+    serialized by the processor. The returned transformed value will be used by the processor to
+    serialize the XML data.
+
+    The from_xml and to_xml should be inverse operations to each other. The from_xml function maps
+    values from the raw XML format into a format the caller wants to use, and the to_xml function
+    performs the inverse mapping from a format used by the caller into the raw XML format that can
+    be serialized directly.
+
+    If a processor is only ever going to be used for parsing, then the to_xml function may be
+    omitted. Likewise, if a processor is only ever going to be used for serializing, then the
+    to_xml function may be omitted as well.
+
+    >>> mapping = ValueMapping(from_xml=lambda x: x*2, to_xml=lambda x: x/2)
+    >>> processor = dictionary('data', [integer('value', mapping=mapping)])
+    >>> xml_data = '<data><value>3</value></data>'
+    >>> parse_from_string(processor, xml_data)
+    {'value': 6}
+    >>> serialize_to_string(processor, {'value': 6})
+    u'<data><value>3</value></data>'
+    """
+    
+    def __init__(self, from_xml=None, to_xml=None):
+        """
+        :param from_xml: A function to map values from XML values.
+        :param to_xml: A function to map values to XML values.
+        """
+        self.from_xml = from_xml
+        self.to_xml = to_xml
+
+
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
     """
     Parses the XML file using the processor starting from the root of the document.
@@ -208,7 +252,7 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
     return _Array(item_processor, alias, nested, omit_empty)
 
 
-def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False):
+def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False, mapping=None):
     """
     Creates a processor for boolean values.
 
@@ -226,10 +270,11 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     :param omit_empty: If True, then Falsey values will be omitted when serializing to XML. Note
         that Falsey values are never omitted when they are elements of an array. Falsey values can
         be omitted only when they are standalone elements.
+    :param mapping: A ValueMapping object.
 
     :return: A declxml processor object.
     """
-    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty)
+    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty, mapping)
 
 
 def dictionary(element_name, children, required=True, alias=None):
@@ -249,24 +294,24 @@ def dictionary(element_name, children, required=True, alias=None):
     return _Dictionary(element_name, children, required, alias)
 
 
-def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False):
+def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False, mapping=None):
     """
     Creates a processor for floating point values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(float)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
 
 
-def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False):
+def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False, mapping=None):
     """
     Creates a processor for integer values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(int)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
 
 
 def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None):
@@ -281,7 +326,7 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
     return _Aggregate(element_name, converter, child_processors, required, alias)
 
 
-def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True):
+def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True, mapping=None):
     """
     Creates a processor for string values.
 
@@ -291,7 +336,7 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     See also :func:`declxml.boolean`
     """
     value_parser = _string_parser(strip_whitespace)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
 
 
 def user_object(element_name, cls, child_processors, required=True, alias=None):
@@ -552,7 +597,7 @@ class _Dictionary(object):
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
-    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False):
+    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False, mapping=None):
         """
         :param element_path: Path to XML element containing the value.
         :param parser_func: Function to parse the raw XML value. Should take a string and return
@@ -562,12 +607,14 @@ class _PrimitiveValue(object):
         :param default: Default value. Only valid if required is False.
         :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if required is
             False.
+        :param mapping: A ValueMapping object.
         """
         self.element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
         self._default = default
+        self._mapping = mapping
 
         if alias:
             self.alias = alias
@@ -588,7 +635,6 @@ class _PrimitiveValue(object):
         else:
             self.omit_empty = omit_empty
 
-
     def parse_at_element(self, element, state):
         """Parses the primitive value at the given XML element"""
         parsed_value = self._default
@@ -601,14 +647,14 @@ class _PrimitiveValue(object):
         elif self.required:
             state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_path))
 
-        return parsed_value
+        return self._map_value_from_xml(parsed_value, state)
 
     def parse_from_parent(self, parent, state):
         """Parses the primitive value under the provided parent XML element"""
         element = parent.find(self.element_path)
         return self.parse_at_element(element, state)
 
-    def serialize(self, value, _state):
+    def serialize(self, value, state):
         """
         Serializes the value into a new element object and returns the element. If the omit_empty
         option was specified and the value is falsey, then this will return None.
@@ -616,7 +662,7 @@ class _PrimitiveValue(object):
         # For primitive values, this is only called when the value is part of an array,
         # in which case we do not need to check for missing or omitted values.
         start_element, end_element = _element_path_create_new(self.element_path)
-        self._serialize(end_element, value)
+        self._serialize(end_element, value, state)
         return start_element
 
     def serialize_on_parent(self, parent, value, state):
@@ -629,7 +675,29 @@ class _PrimitiveValue(object):
             return  # Do Nothing
 
         element = _element_get_or_add_from_parent(parent, self.element_path)
-        self._serialize(element, value)
+        self._serialize(element, value, state)
+
+    def _map_value_from_xml(self, value, state):
+        """Applies the processor's mapping to the raw XML value"""
+        if not self._mapping:
+            return value
+
+        if not self._mapping.from_xml:
+            state.raise_error(XmlError,
+                              'No from_xml function provided in mapping. Cannot perform parsing.')
+
+        return self._mapping.from_xml(value)
+
+    def _map_value_to_xml(self, value, state):
+        """Applies the processor's mapping to the value"""
+        if not self._mapping:
+            return value
+
+        if not self._mapping.to_xml:
+            state.raise_error(XmlError,
+                              'No to_xml function provided in mapping. Cannot perform serialization.')
+
+        return self._mapping.to_xml(value)
 
     def _missing_value_message(self, parent):
         """Returns the message to use to report that value needed for serialization is missing"""
@@ -658,8 +726,10 @@ class _PrimitiveValue(object):
 
         return parsed_value
 
-    def _serialize(self, element, value):
+    def _serialize(self, element, value, state):
         """Serializes the value to the element"""
+        value = self._map_value_to_xml(value, state)
+
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
         # not replaced by the default.

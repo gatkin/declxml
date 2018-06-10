@@ -1,8 +1,125 @@
 """Tests for performing arbitrary transformations of XML values during processing"""
+from collections import OrderedDict
+
 import pytest
 
 import declxml as xml
 from .helpers import strip_xml
+
+
+class TestArrayValueMapping(object):
+
+    _mapped_value = OrderedDict([
+        ('a', 17),
+        ('b', 42),
+        ('c', 37),
+    ])
+
+    _array_item_processor = xml.dictionary('value', [
+                xml.string('.', attribute='key'),
+                xml.integer('.', alias='value')
+            ])
+
+    @staticmethod
+    def _from_xml(xml_array):
+        dict_value = OrderedDict()
+        for item in xml_array:
+            dict_value[item['key']] = item['value']
+
+        return dict_value
+
+    @staticmethod
+    def _to_xml(dict_value):
+        return [{'key': k, 'value': v} for k, v in dict_value.items()]
+
+    def test_array_of_arrays(self):
+        """Map array values for a nested array"""
+        xml_string = strip_xml("""
+            <data>
+                <name>Dataset 1</name>
+                <values>
+                    <value key="a">17</value>
+                    <value key="b">42</value>
+                    <value key="c">37</value>
+                </values>
+                <values>
+                    <value key="x">34</value>
+                    <value key="y">4</value>
+                    <value key="z">58</value>
+                </values>
+            </data>
+        """)
+
+        value = {
+            'name': 'Dataset 1',
+            'values': [
+                self._mapped_value,
+                OrderedDict([
+                    ('x', 34),
+                    ('y', 4),
+                    ('z', 58),
+                ])
+            ],
+        }
+
+        processor = xml.dictionary('data', [
+            xml.string('name'),
+            xml.array(
+                xml.array(self._item_processor, nested='values', mapping=self._mapping),
+            )
+        ])
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_non_root_array(self):
+        """Map array values for non-root arrays"""
+        xml_string = strip_xml("""
+            <data>
+                <name>Dataset 1</name>
+                <value key="a">17</value>
+                <value key="b">42</value>
+                <value key="c">37</value>
+            </data>
+        """)
+
+        value = {
+            'name': 'Dataset 1',
+            'values': self._mapped_value,
+        }
+
+        processor = xml.dictionary('data', [
+            xml.string('name'),
+            xml.array(self._item_processor, alias='values', mapping=self._mapping)
+        ])
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_root_array(self):
+        """Map array values for root arrays"""
+        xml_string = strip_xml("""
+            <data>
+                <value key="a">17</value>
+                <value key="b">42</value>
+                <value key="c">37</value>
+            </data>
+        """)
+
+        value = self._mapped_value
+
+        processor = xml.array(self._item_processor, nested='data', mapping=self._mapping)
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    @property
+    def _item_processor(self):
+        return TestArrayValueMapping._array_item_processor
+
+    @property
+    def _mapping(self):
+        return xml.ValueMapping(
+            from_xml=TestArrayValueMapping._from_xml,
+            to_xml=TestArrayValueMapping._to_xml
+        )
 
 
 def test_boolean_mapping():
@@ -11,7 +128,7 @@ def test_boolean_mapping():
         <data>
             <value>True</value>
         </data>
-        """)
+    """)
 
     value = {
         'value': 'It is true'
@@ -29,10 +146,10 @@ def test_boolean_mapping():
         else:
             return False
 
-    _mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.boolean('value', mapping=_mapping)
+        xml.boolean('value', mapping=mapping)
     ])
 
     _mapping_test_case_run(processor, value, xml_string)
@@ -56,10 +173,10 @@ def test_floating_point_mapping():
     def _to_xml(x):
         return x / 2.0
 
-    _mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.floating_point('value', mapping=_mapping)
+        xml.floating_point('value', mapping=mapping)
     ])
 
     _mapping_test_case_run(processor, value, xml_string)
@@ -83,10 +200,10 @@ def test_integer_mapping():
     def _to_xml(x):
         return int(x / 2)
 
-    _mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.integer('value', mapping=_mapping)
+        xml.integer('value', mapping=mapping)
     ])
 
     _mapping_test_case_run(processor, value, xml_string)
@@ -140,10 +257,10 @@ def test_string_mapping():
     def _to_xml(x):
         return x.lower()
 
-    _mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.string('value', mapping=_mapping)
+        xml.string('value', mapping=mapping)
     ])
 
     _mapping_test_case_run(processor, value, xml_string)

@@ -106,7 +106,7 @@ class ValueMapping(object):
     >>> serialize_to_string(processor, {'value': 6})
     u'<data><value>3</value></data>'
     """
-    
+
     def __init__(self, from_xml=None, to_xml=None):
         """
         :param from_xml: A function to map values from XML values.
@@ -201,7 +201,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False):
+def array(item_processor, alias=None, nested=None, omit_empty=False, mapping=None):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -246,10 +246,12 @@ def array(item_processor, alias=None, nested=None, omit_empty=False):
         for an array of arrays, any empty arrays in the outer array will always be
         serialized to prevent information about the original array from being lost
         when serializing.
+    :param mapping: A ValueMapping object.
 
     :return: A declxml processor object.
     """
-    return _Array(item_processor, alias, nested, omit_empty)
+    processor = _Array(item_processor, alias, nested, omit_empty)
+    return _processor_wrap_if_mapping(processor, mapping)
 
 
 def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False, mapping=None):
@@ -594,6 +596,40 @@ class _Dictionary(object):
             state.pop_location()
 
 
+class _MappedAggregate(object):
+    """
+    An XML processor which decorates an underlying processor and applies a mapping to all
+    values parsed and serialized by the underlying processor.
+    """
+
+    def __init__(self, processor, mapping):
+        self.element_path = processor.element_path
+        self.required = processor.required
+        self.alias = processor.alias
+        self._processor = processor
+        self._mapping = mapping
+
+    def parse_at_element(self, element, state):
+        xml_value = self._processor.parse_at_element(element, state)
+        return _map_value_from_xml(self._mapping, xml_value, state)
+
+    def parse_at_root(self, root, state):
+        xml_value = self._processor.parse_at_root(root, state)
+        return _map_value_from_xml(self._mapping, xml_value, state)
+
+    def parse_from_parent(self, parent, state):
+        xml_value = self._processor.parse_from_parent(parent, state)
+        return _map_value_from_xml(self._mapping, xml_value, state)
+
+    def serialize(self, value, state):
+        xml_value = _map_value_to_xml(self._mapping, value, state)
+        return self._processor.serialize(xml_value, state)
+
+    def serialize_on_parent(self, parent, value, state):
+        xml_value = _map_value_to_xml(self._mapping, value, state)
+        self._processor.serialize_on_parent(parent, xml_value, state)
+
+
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
@@ -647,7 +683,7 @@ class _PrimitiveValue(object):
         elif self.required:
             state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_path))
 
-        return self._map_value_from_xml(parsed_value, state)
+        return _map_value_from_xml(self._mapping, parsed_value, state)
 
     def parse_from_parent(self, parent, state):
         """Parses the primitive value under the provided parent XML element"""
@@ -676,28 +712,6 @@ class _PrimitiveValue(object):
 
         element = _element_get_or_add_from_parent(parent, self.element_path)
         self._serialize(element, value, state)
-
-    def _map_value_from_xml(self, value, state):
-        """Applies the processor's mapping to the raw XML value"""
-        if not self._mapping:
-            return value
-
-        if not self._mapping.from_xml:
-            state.raise_error(XmlError,
-                              'No from_xml function provided in mapping. Cannot perform parsing.')
-
-        return self._mapping.from_xml(value)
-
-    def _map_value_to_xml(self, value, state):
-        """Applies the processor's mapping to the value"""
-        if not self._mapping:
-            return value
-
-        if not self._mapping.to_xml:
-            state.raise_error(XmlError,
-                              'No to_xml function provided in mapping. Cannot perform serialization.')
-
-        return self._mapping.to_xml(value)
 
     def _missing_value_message(self, parent):
         """Returns the message to use to report that value needed for serialization is missing"""
@@ -728,21 +742,21 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value, state):
         """Serializes the value to the element"""
-        value = self._map_value_to_xml(value, state)
+        xml_value = _map_value_to_xml(self._mapping, value, state)
 
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
         # not replaced by the default.
-        if value is None:
+        if xml_value is None:
             if self._default is None:
                 serialized_value = ''
             else:
                 serialized_value = str(self._default)
         else:
             if sys.version_info[0] == 2:
-                serialized_value = unicode(value)
+                serialized_value = unicode(xml_value)
             else:
-                serialized_value = str(value)
+                serialized_value = str(xml_value)
 
         if self._attribute:
             element.set(self._attribute, serialized_value)
@@ -864,6 +878,38 @@ def _element_path_create_new(element_path):
 def _is_valid_root_processor(processor):
     """Returns True if the given XML processor can be used as a root processor"""
     return hasattr(processor, 'parse_at_root')
+
+
+def _map_value_from_xml(mapping, value, state):
+    """Applies the mapping to the raw XML value"""
+    if not mapping:
+        return value
+
+    if not mapping.from_xml:
+        state.raise_error(XmlError,
+                          'No from_xml function provided in mapping. Cannot perform parsing.')
+
+    return mapping.from_xml(value)
+
+
+def _map_value_to_xml(mapping, value, state):
+    """Applies the mapping to the value"""
+    if not mapping:
+        return value
+
+    if not mapping.to_xml:
+        state.raise_error(XmlError,
+                          'No to_xml function provided in mapping. Cannot perform serialization.')
+
+    return mapping.to_xml(value)
+
+
+def _processor_wrap_if_mapping(processor, mapping):
+    """Creates a mapped processor if a valid mapping is provided"""
+    if mapping:
+        return _MappedAggregate(processor, mapping)
+    else:
+        return processor
 
 
 def _named_tuple_converter(tuple_type):

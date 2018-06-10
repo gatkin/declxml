@@ -45,14 +45,8 @@ environment:
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
-before_build:
-- choco install codecov
-
 install:
   - "%PYTHON%/Scripts/pip.exe install -r requirements.txt"
 
 test_script:
   - "%PYTHON%/Scripts/coverage.exe run tests/run_tests.py"
-
-after_test:
-  - "codecov -f coverage.xml"

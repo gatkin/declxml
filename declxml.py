@@ -279,7 +279,7 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty, mapping)
 
 
-def dictionary(element_name, children, required=True, alias=None):
+def dictionary(element_name, children, required=True, alias=None, mapping=None):
     """
     Creates a processor for dictionary values.
 
@@ -290,10 +290,12 @@ def dictionary(element_name, children, required=True, alias=None):
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
+    :param mapping: A ValueMapping object.
 
     :return: A declxml processor object.
     """
-    return _Dictionary(element_name, children, required, alias)
+    processor = _Dictionary(element_name, children, required, alias)
+    return _processor_wrap_if_mapping(processor, mapping)
 
 
 def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False, mapping=None):
@@ -904,14 +906,6 @@ def _map_value_to_xml(mapping, value, state):
     return mapping.to_xml(value)
 
 
-def _processor_wrap_if_mapping(processor, mapping):
-    """Creates a mapped processor if a valid mapping is provided"""
-    if mapping:
-        return _MappedAggregate(processor, mapping)
-    else:
-        return processor
-
-
 def _named_tuple_converter(tuple_type):
     """Returns an _AggregateConverter for named tuples of the given type"""
     def _from_dict(dict_value):
@@ -952,6 +946,14 @@ def _parse_boolean(element_text, state):
         state.raise_error(InvalidPrimitiveValue, 'Invalid boolean value "{}"'.format(element_text))
 
     return value
+
+
+def _processor_wrap_if_mapping(processor, mapping):
+    """Creates a mapped processor if a valid mapping is provided"""
+    if mapping:
+        return _MappedAggregate(processor, mapping)
+    else:
+        return processor
 
 
 def _string_parser(strip_whitespace):

@@ -8,12 +8,7 @@ from .helpers import strip_xml
 
 
 class TestArrayValueMapping(object):
-
-    _mapped_value = OrderedDict([
-        ('a', 17),
-        ('b', 42),
-        ('c', 37),
-    ])
+    """Tests mapping array values"""
 
     _array_item_processor = xml.dictionary('value', [
                 xml.string('.', attribute='key'),
@@ -21,9 +16,9 @@ class TestArrayValueMapping(object):
             ])
 
     @staticmethod
-    def _from_xml(xml_array):
+    def _from_xml(array_value):
         dict_value = OrderedDict()
-        for item in xml_array:
+        for item in array_value:
             dict_value[item['key']] = item['value']
 
         return dict_value
@@ -53,7 +48,11 @@ class TestArrayValueMapping(object):
         value = {
             'name': 'Dataset 1',
             'values': [
-                self._mapped_value,
+                OrderedDict([
+                    ('a', 17),
+                    ('b', 42),
+                    ('c', 37),
+                ]),
                 OrderedDict([
                     ('x', 34),
                     ('y', 4),
@@ -84,7 +83,11 @@ class TestArrayValueMapping(object):
 
         value = {
             'name': 'Dataset 1',
-            'values': self._mapped_value,
+            'values': OrderedDict([
+                ('a', 17),
+                ('b', 42),
+                ('c', 37),
+            ]),
         }
 
         processor = xml.dictionary('data', [
@@ -104,7 +107,11 @@ class TestArrayValueMapping(object):
             </data>
         """)
 
-        value = self._mapped_value
+        value = OrderedDict([
+            ('a', 17),
+            ('b', 42),
+            ('c', 37),
+        ])
 
         processor = xml.array(self._item_processor, nested='data', mapping=self._mapping)
 
@@ -120,6 +127,122 @@ class TestArrayValueMapping(object):
             from_xml=TestArrayValueMapping._from_xml,
             to_xml=TestArrayValueMapping._to_xml
         )
+
+
+class TestDictionaryValueMapping(object):
+    """Tests mapping dictionary values"""
+
+    @staticmethod
+    def _from_xml(dict_value):
+        list_value = []
+        for key, value in dict_value.items():
+            list_value.append((key, value))
+
+        return sorted(list_value)
+
+    @staticmethod
+    def _to_xml(list_value):
+        dict_value = {}
+        for key, value in list_value:
+            dict_value[key] = value
+
+        return dict_value
+
+    def test_array_element_dictionary(self):
+        """Apply a mapping to a dictionary in an array"""
+        xml_string = strip_xml("""
+            <results>
+                <data>
+                    <a>17</a>
+                    <b>42</b>
+                    <c>23</c>
+                </data>
+                <data>
+                    <a>32</a>
+                    <b>2</b>
+                    <c>15</c>
+                </data>
+            </results>
+        """)
+
+        value = [
+            [
+                ('a', 17),
+                ('b', 42),
+                ('c', 23),
+            ],
+            [
+                ('a', 32),
+                ('b', 2),
+                ('c', 15),
+            ],
+        ]
+
+        processor = xml.array(self._dict_processor, nested='results')
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_non_root_dictionary(self):
+        """Apply a mapping to a non-root dictionary"""
+        xml_string = strip_xml("""
+            <results>
+                <name>Dataset 1</name>
+                <data>
+                    <a>17</a>
+                    <b>42</b>
+                    <c>23</c>
+                </data>
+            </results>
+        """)
+
+        value = {
+            'name': 'Dataset 1',
+            'data': [
+                ('a', 17),
+                ('b', 42),
+                ('c', 23),
+            ],
+        }
+
+        processor = xml.dictionary('results', [
+            xml.string('name'),
+            self._dict_processor,
+        ])
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_root_dictionary(self):
+        """Apply a mapping to a root dictionary"""
+        xml_string = strip_xml("""
+            <data>
+                <a>17</a>
+                <b>42</b>
+                <c>23</c>
+            </data>
+        """)
+
+        value = [
+            ('a', 17),
+            ('b', 42),
+            ('c', 23),
+        ]
+
+        processor = self._dict_processor
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    @property
+    def _dict_processor(self):
+        mapping = xml.ValueMapping(
+            from_xml=self._from_xml,
+            to_xml=self._to_xml
+        )
+
+        return xml.dictionary('data', [
+            xml.integer('a'),
+            xml.integer('b'),
+            xml.integer('c'),
+        ], mapping=mapping)
 
 
 def test_boolean_mapping():

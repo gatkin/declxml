@@ -343,7 +343,7 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
 
 
-def user_object(element_name, cls, child_processors, required=True, alias=None):
+def user_object(element_name, cls, child_processors, required=True, alias=None, mapping=None):
     """
     Creates a processor for user objects.
 
@@ -352,7 +352,8 @@ def user_object(element_name, cls, child_processors, required=True, alias=None):
     See also :func:`declxml.dictionary`
     """
     converter = _user_object_converter(cls)
-    return _Aggregate(element_name, converter, child_processors, required, alias)
+    processor = _Aggregate(element_name, converter, child_processors, required, alias)
+    return _processor_wrap_if_mapping(processor, mapping)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries

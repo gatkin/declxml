@@ -245,6 +245,102 @@ class TestDictionaryValueMapping(object):
         ], mapping=mapping)
 
 
+class TestUserObjectValueMapping(object):
+    """Map user object values"""
+
+    class _Person(object):
+
+        def __init__(self):
+            self.name = None
+            self.age = None
+
+        def __eq__(self, other):
+            return other.name == self.name and other.age == self.age
+
+    @staticmethod
+    def _from_xml(object_value):
+        return (object_value.name, object_value.age)
+
+    @staticmethod
+    def _to_xml(tuple_value):
+        object_value = TestUserObjectValueMapping._Person()
+        object_value.name = tuple_value[0]
+        object_value.age = tuple_value[1]
+        return object_value
+
+    def test_array_element_user_object(self):
+        """Apply a mapping to a user object in an array"""
+        xml_string = strip_xml("""
+        <people>
+            <person>
+                <name>John</name>
+                <age>24</age>
+            </person>
+            <person>
+                <name>Jane</name>
+                <age>27</age>
+            </person>
+        </people>
+        """)
+
+        value = [
+            ('John', 24),
+            ('Jane', 27),
+        ]
+
+        processor = xml.array(self._user_object_processor, nested='people')
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_non_root_user_object(self):
+        """Apply a mapping to a root user object"""
+        xml_string = strip_xml("""
+        <data>
+            <person>
+                <name>John</name>
+                <age>24</age>
+            </person>
+        </data>
+        """)
+
+        value = {
+            'person': ('John', 24)
+        }
+
+        processor = xml.dictionary('data', [
+            self._user_object_processor,
+        ])
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    def test_root_user_object(self):
+        """Apply a mapping to a root user object"""
+        xml_string = strip_xml("""
+        <person>
+            <name>John</name>
+            <age>24</age>
+        </person>
+        """)
+
+        value = ('John', 24)
+
+        processor = self._user_object_processor
+
+        _mapping_test_case_run(processor, value, xml_string)
+
+    @property
+    def _user_object_processor(self):
+        mapping = xml.ValueMapping(
+            from_xml=self._from_xml,
+            to_xml=self._to_xml,
+        )
+
+        return xml.user_object('person', self._Person, [
+            xml.string('name'),
+            xml.integer('age'),
+        ], mapping=mapping)
+
+
 def test_boolean_mapping():
     """Map boolean values"""
     xml_string = strip_xml("""
@@ -360,6 +456,60 @@ def test_missing_to_xml_mapping():
 
     with pytest.raises(xml.XmlError):
         xml.serialize_to_string(processor, value)
+
+
+def test_primitive_mapping_array_element():
+    """Map a primitive value that is an array element"""
+    xml_string = strip_xml("""
+    <data>
+        <value>3</value>
+        <value>7</value>
+        <value>16</value>
+    </data>
+    """)
+
+    value = [
+        6,
+        14,
+        32,
+    ]
+
+    def _from_xml(x):
+        return int(x * 2)
+
+    def _to_xml(x):
+        return int(x / 2)
+
+    processor = xml.array(
+        xml.integer('value', mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)),
+        nested='data')
+
+    _mapping_test_case_run(processor, value, xml_string)
+
+
+def test_primitive_mapping_attribute():
+    """Map a primitive value that is an attribute"""
+    xml_string = strip_xml("""
+    <data>
+        <element value="3" />
+    </data>
+    """)
+
+    value = {
+        'value': 6,
+    }
+
+    def _from_xml(x):
+        return int(x * 2)
+
+    def _to_xml(x):
+        return int(x / 2)
+
+    processor = xml.dictionary('data', [
+        xml.integer('element', attribute='value', mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml))
+    ])
+
+    _mapping_test_case_run(processor, value, xml_string)
 
 
 def test_string_mapping():

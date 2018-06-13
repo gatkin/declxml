@@ -1,5 +1,5 @@
 """Tests for performing arbitrary transformations of XML values during processing"""
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import pytest
 
@@ -456,6 +456,39 @@ def test_missing_to_xml_mapping():
 
     with pytest.raises(xml.XmlError):
         xml.serialize_to_string(processor, value)
+
+
+def test_named_tuple_mapping():
+    """Map a named tuple value"""
+    Person = namedtuple('Person', ['name', 'age'])
+
+    xml_string = strip_xml("""
+    <person>
+        <name>John</name>
+        <age>24</age>
+    </person>
+    """)
+
+    value = {
+        'name': 'John',
+        'age': 24,
+    }
+
+    def _from_xml(tuple_value):
+        return {
+            'name': tuple_value.name,
+            'age': tuple_value.age,
+        }
+
+    def _to_xml(dict_value):
+        return Person(name=dict_value['name'], age=dict_value['age'])
+
+    processor = xml.named_tuple('person', Person, [
+        xml.string('name'),
+        xml.integer('age'),
+    ], mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml))
+
+    _mapping_test_case_run(processor, value, xml_string)
 
 
 def test_primitive_mapping_array_element():

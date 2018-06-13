@@ -99,12 +99,12 @@ class ValueMapping(object):
     to_xml function may be omitted as well.
 
     >>> mapping = ValueMapping(from_xml=lambda x: x*2, to_xml=lambda x: x/2)
-    >>> processor = dictionary('data', [integer('value', mapping=mapping)])
-    >>> xml_data = '<data><value>3</value></data>'
+    >>> processor = dictionary('data', [floating_point('value', mapping=mapping)])
+    >>> xml_data = '<data><value>3.0</value></data>'
     >>> parse_from_string(processor, xml_data)
-    {'value': 6}
+    {'value': 6.0}
     >>> serialize_to_string(processor, {'value': 6})
-    u'<data><value>3</value></data>'
+    '<data><value>3.0</value></data>'
     """
 
     def __init__(self, from_xml=None, to_xml=None):
@@ -318,7 +318,7 @@ def integer(element_name, attribute=None, required=True, alias=None, default=0, 
     return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
 
 
-def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None):
+def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None, mapping=None):
     """
     Creates a processor for namedtuple values.
 
@@ -327,7 +327,7 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
     See also :func:`declxml.dictionary`
     """
     converter = _named_tuple_converter(tuple_type)
-    return _Aggregate(element_name, converter, child_processors, required, alias)
+    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping)
 
 
 def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True, mapping=None):
@@ -352,8 +352,7 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     See also :func:`declxml.dictionary`
     """
     converter = _user_object_converter(cls)
-    processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_mapping(processor, mapping)
+    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
@@ -807,6 +806,12 @@ class _ProcessorState(object):
             location_str = location.element
 
         return location_str
+
+
+def _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping):
+    """Creates a new aggregate processor"""
+    processor = _Aggregate(element_name, converter, child_processors, required, alias)
+    return _processor_wrap_if_mapping(processor, mapping)
 
 
 def _element_append_path(start_element, element_names):

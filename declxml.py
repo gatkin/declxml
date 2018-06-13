@@ -72,11 +72,11 @@ class MissingValue(XmlError):
     pass
 
 
-class ValueMapping(object):
+class ValueTransform(object):
     """
-    Contains functions used to transform and map values when parsing and serializing.
+    Contains functions used to transform values when parsing and serializing.
 
-    A ValueMapper object contains two functions: from_xml and to_xml. Both of these functions
+    A ValueTransform object contains two functions: from_xml and to_xml. Both of these functions
     receive one argument and should return one value.
 
     The from_xml function will receive the value parsed by the processor from the XML data during
@@ -89,17 +89,17 @@ class ValueMapping(object):
     serialized by the processor. The returned transformed value will be used by the processor to
     serialize the XML data.
 
-    The from_xml and to_xml should be inverse operations to each other. The from_xml function maps
-    values from the raw XML format into a format the caller wants to use, and the to_xml function
-    performs the inverse mapping from a format used by the caller into the raw XML format that can
-    be serialized directly.
+    The from_xml and to_xml should be inverse operations to each other. The from_xml function
+    transforms values from the raw XML format into a format the caller wants to use, and the to_xml
+    function performs the inverse transform from a format used by the caller into the raw XML format
+    that can be serialized directly.
 
     If a processor is only ever going to be used for parsing, then the to_xml function may be
     omitted. Likewise, if a processor is only ever going to be used for serializing, then the
     to_xml function may be omitted as well.
 
-    >>> mapping = ValueMapping(from_xml=lambda x: x*2, to_xml=lambda x: x/2)
-    >>> processor = dictionary('data', [floating_point('value', mapping=mapping)])
+    >>> transform = ValueTransform(from_xml=lambda x: x*2, to_xml=lambda x: x/2)
+    >>> processor = dictionary('data', [floating_point('value', transform=transform)])
     >>> xml_data = '<data><value>3.0</value></data>'
     >>> parse_from_string(processor, xml_data)
     {'value': 6.0}
@@ -109,8 +109,8 @@ class ValueMapping(object):
 
     def __init__(self, from_xml=None, to_xml=None):
         """
-        :param from_xml: A function to map values from XML values.
-        :param to_xml: A function to map values to XML values.
+        :param from_xml: A function to transform values from XML values.
+        :param to_xml: A function to transform values to XML values.
         """
         self.from_xml = from_xml
         self.to_xml = to_xml
@@ -201,7 +201,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False, mapping=None):
+def array(item_processor, alias=None, nested=None, omit_empty=False, transform=None):
     """
     Creates an array processor that can be used to parse and serialize array
     data.
@@ -246,15 +246,15 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, mapping=Non
         for an array of arrays, any empty arrays in the outer array will always be
         serialized to prevent information about the original array from being lost
         when serializing.
-    :param mapping: A ValueMapping object.
+    :param transform: A ValueTransform object.
 
     :return: A declxml processor object.
     """
     processor = _Array(item_processor, alias, nested, omit_empty)
-    return _processor_wrap_if_mapping(processor, mapping)
+    return _processor_wrap_if_transform(processor, transform)
 
 
-def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False, mapping=None):
+def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False, transform=None):
     """
     Creates a processor for boolean values.
 
@@ -272,14 +272,14 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
     :param omit_empty: If True, then Falsey values will be omitted when serializing to XML. Note
         that Falsey values are never omitted when they are elements of an array. Falsey values can
         be omitted only when they are standalone elements.
-    :param mapping: A ValueMapping object.
+    :param transform: A ValueTransform object.
 
     :return: A declxml processor object.
     """
-    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty, mapping)
+    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty, transform)
 
 
-def dictionary(element_name, children, required=True, alias=None, mapping=None):
+def dictionary(element_name, children, required=True, alias=None, transform=None):
     """
     Creates a processor for dictionary values.
 
@@ -290,35 +290,35 @@ def dictionary(element_name, children, required=True, alias=None, mapping=None):
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
-    :param mapping: A ValueMapping object.
+    :param transform: A ValueTransform object.
 
     :return: A declxml processor object.
     """
     processor = _Dictionary(element_name, children, required, alias)
-    return _processor_wrap_if_mapping(processor, mapping)
+    return _processor_wrap_if_transform(processor, transform)
 
 
-def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False, mapping=None):
+def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False, transform=None):
     """
     Creates a processor for floating point values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(float)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
 
 
-def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False, mapping=None):
+def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False, transform=None):
     """
     Creates a processor for integer values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(int)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
 
 
-def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None, mapping=None):
+def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None, transform=None):
     """
     Creates a processor for namedtuple values.
 
@@ -327,10 +327,10 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
     See also :func:`declxml.dictionary`
     """
     converter = _named_tuple_converter(tuple_type)
-    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping)
+    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform)
 
 
-def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True, mapping=None):
+def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True, transform=None):
     """
     Creates a processor for string values.
 
@@ -340,10 +340,10 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     See also :func:`declxml.boolean`
     """
     value_parser = _string_parser(strip_whitespace)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, mapping)
+    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
 
 
-def user_object(element_name, cls, child_processors, required=True, alias=None, mapping=None):
+def user_object(element_name, cls, child_processors, required=True, alias=None, transform=None):
     """
     Creates a processor for user objects.
 
@@ -352,7 +352,7 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     See also :func:`declxml.dictionary`
     """
     converter = _user_object_converter(cls)
-    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping)
+    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
@@ -598,44 +598,10 @@ class _Dictionary(object):
             state.pop_location()
 
 
-class _MappedAggregate(object):
-    """
-    An XML processor which decorates an underlying processor and applies a mapping to all
-    values parsed and serialized by the underlying processor.
-    """
-
-    def __init__(self, processor, mapping):
-        self.element_path = processor.element_path
-        self.required = processor.required
-        self.alias = processor.alias
-        self._processor = processor
-        self._mapping = mapping
-
-    def parse_at_element(self, element, state):
-        xml_value = self._processor.parse_at_element(element, state)
-        return _map_value_from_xml(self._mapping, xml_value, state)
-
-    def parse_at_root(self, root, state):
-        xml_value = self._processor.parse_at_root(root, state)
-        return _map_value_from_xml(self._mapping, xml_value, state)
-
-    def parse_from_parent(self, parent, state):
-        xml_value = self._processor.parse_from_parent(parent, state)
-        return _map_value_from_xml(self._mapping, xml_value, state)
-
-    def serialize(self, value, state):
-        xml_value = _map_value_to_xml(self._mapping, value, state)
-        return self._processor.serialize(xml_value, state)
-
-    def serialize_on_parent(self, parent, value, state):
-        xml_value = _map_value_to_xml(self._mapping, value, state)
-        self._processor.serialize_on_parent(parent, xml_value, state)
-
-
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
-    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False, mapping=None):
+    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False, transform=None):
         """
         :param element_path: Path to XML element containing the value.
         :param parser_func: Function to parse the raw XML value. Should take a string and return
@@ -645,14 +611,14 @@ class _PrimitiveValue(object):
         :param default: Default value. Only valid if required is False.
         :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if required is
             False.
-        :param mapping: A ValueMapping object.
+        :param transform: A ValueTransform object.
         """
         self.element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
         self._default = default
-        self._mapping = mapping
+        self._transform = transform
 
         if alias:
             self.alias = alias
@@ -685,7 +651,7 @@ class _PrimitiveValue(object):
         elif self.required:
             state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_path))
 
-        return _map_value_from_xml(self._mapping, parsed_value, state)
+        return _transform_value_from_xml(self._transform, parsed_value, state)
 
     def parse_from_parent(self, parent, state):
         """Parses the primitive value under the provided parent XML element"""
@@ -744,7 +710,7 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value, state):
         """Serializes the value to the element"""
-        xml_value = _map_value_to_xml(self._mapping, value, state)
+        xml_value = _transform_value_to_xml(self._transform, value, state)
 
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
@@ -808,10 +774,44 @@ class _ProcessorState(object):
         return location_str
 
 
-def _aggregate_processor_create(element_name, converter, child_processors, required, alias, mapping):
+class _TransformedAggregate(object):
+    """
+    An XML processor which decorates an underlying processor and applies a transform to all
+    values parsed and serialized by the underlying processor.
+    """
+
+    def __init__(self, processor, transform):
+        self.element_path = processor.element_path
+        self.required = processor.required
+        self.alias = processor.alias
+        self._processor = processor
+        self._transform = transform
+
+    def parse_at_element(self, element, state):
+        xml_value = self._processor.parse_at_element(element, state)
+        return _transform_value_from_xml(self._transform, xml_value, state)
+
+    def parse_at_root(self, root, state):
+        xml_value = self._processor.parse_at_root(root, state)
+        return _transform_value_from_xml(self._transform, xml_value, state)
+
+    def parse_from_parent(self, parent, state):
+        xml_value = self._processor.parse_from_parent(parent, state)
+        return _transform_value_from_xml(self._transform, xml_value, state)
+
+    def serialize(self, value, state):
+        xml_value = _transform_value_to_xml(self._transform, value, state)
+        return self._processor.serialize(xml_value, state)
+
+    def serialize_on_parent(self, parent, value, state):
+        xml_value = _transform_value_to_xml(self._transform, value, state)
+        self._processor.serialize_on_parent(parent, xml_value, state)
+
+
+def _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform):
     """Creates a new aggregate processor"""
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_mapping(processor, mapping)
+    return _processor_wrap_if_transform(processor, transform)
 
 
 def _element_append_path(start_element, element_names):
@@ -888,30 +888,6 @@ def _is_valid_root_processor(processor):
     return hasattr(processor, 'parse_at_root')
 
 
-def _map_value_from_xml(mapping, value, state):
-    """Applies the mapping to the raw XML value"""
-    if not mapping:
-        return value
-
-    if not mapping.from_xml:
-        state.raise_error(XmlError,
-                          'No from_xml function provided in mapping. Cannot perform parsing.')
-
-    return mapping.from_xml(value)
-
-
-def _map_value_to_xml(mapping, value, state):
-    """Applies the mapping to the value"""
-    if not mapping:
-        return value
-
-    if not mapping.to_xml:
-        state.raise_error(XmlError,
-                          'No to_xml function provided in mapping. Cannot perform serialization.')
-
-    return mapping.to_xml(value)
-
-
 def _named_tuple_converter(tuple_type):
     """Returns an _AggregateConverter for named tuples of the given type"""
     def _from_dict(dict_value):
@@ -954,10 +930,10 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _processor_wrap_if_mapping(processor, mapping):
-    """Creates a mapped processor if a valid mapping is provided"""
-    if mapping:
-        return _MappedAggregate(processor, mapping)
+def _processor_wrap_if_transform(processor, transform):
+    """Creates a transformed processor if a valid transform is provided"""
+    if transform:
+        return _TransformedAggregate(processor, transform)
     else:
         return processor
 
@@ -975,6 +951,30 @@ def _string_parser(strip_whitespace):
         return value
 
     return _parse_string_value
+
+
+def _transform_value_from_xml(transform, value, state):
+    """Applies the transform to the raw XML value"""
+    if not transform:
+        return value
+
+    if not transform.from_xml:
+        state.raise_error(XmlError,
+                          'No from_xml function provided in transform. Cannot perform parsing.')
+
+    return transform.from_xml(value)
+
+
+def _transform_value_to_xml(transform, value, state):
+    """Applies the transform to the value"""
+    if not transform:
+        return value
+
+    if not transform.to_xml:
+        state.raise_error(XmlError,
+                          'No to_xml function provided in transform. Cannot perform serialization.')
+
+    return transform.to_xml(value)
 
 
 def _user_object_converter(cls):

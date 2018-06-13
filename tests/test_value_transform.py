@@ -7,8 +7,8 @@ import declxml as xml
 from .helpers import strip_xml
 
 
-class TestArrayValueMapping(object):
-    """Tests mapping array values"""
+class TestArrayValueTransform(object):
+    """Transform array values"""
 
     _array_item_processor = xml.dictionary('value', [
                 xml.string('.', attribute='key'),
@@ -28,7 +28,7 @@ class TestArrayValueMapping(object):
         return [{'key': k, 'value': v} for k, v in dict_value.items()]
 
     def test_array_of_arrays(self):
-        """Map array values for a nested array"""
+        """Transform array values for a nested array"""
         xml_string = strip_xml("""
             <data>
                 <name>Dataset 1</name>
@@ -64,14 +64,14 @@ class TestArrayValueMapping(object):
         processor = xml.dictionary('data', [
             xml.string('name'),
             xml.array(
-                xml.array(self._item_processor, nested='values', mapping=self._mapping),
+                xml.array(self._item_processor, nested='values', transform=self._transform),
             )
         ])
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_non_root_array(self):
-        """Map array values for non-root arrays"""
+        """Transform array values for non-root arrays"""
         xml_string = strip_xml("""
             <data>
                 <name>Dataset 1</name>
@@ -92,13 +92,13 @@ class TestArrayValueMapping(object):
 
         processor = xml.dictionary('data', [
             xml.string('name'),
-            xml.array(self._item_processor, alias='values', mapping=self._mapping)
+            xml.array(self._item_processor, alias='values', transform=self._transform)
         ])
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_root_array(self):
-        """Map array values for root arrays"""
+        """Transform array values for root arrays"""
         xml_string = strip_xml("""
             <data>
                 <value key="a">17</value>
@@ -113,24 +113,24 @@ class TestArrayValueMapping(object):
             ('c', 37),
         ])
 
-        processor = xml.array(self._item_processor, nested='data', mapping=self._mapping)
+        processor = xml.array(self._item_processor, nested='data', transform=self._transform)
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     @property
     def _item_processor(self):
-        return TestArrayValueMapping._array_item_processor
+        return TestArrayValueTransform._array_item_processor
 
     @property
-    def _mapping(self):
-        return xml.ValueMapping(
-            from_xml=TestArrayValueMapping._from_xml,
-            to_xml=TestArrayValueMapping._to_xml
+    def _transform(self):
+        return xml.ValueTransform(
+            from_xml=TestArrayValueTransform._from_xml,
+            to_xml=TestArrayValueTransform._to_xml
         )
 
 
-class TestDictionaryValueMapping(object):
-    """Tests mapping dictionary values"""
+class TestDictionaryValueTransform(object):
+    """Transform dictionary values"""
 
     @staticmethod
     def _from_xml(dict_value):
@@ -149,7 +149,7 @@ class TestDictionaryValueMapping(object):
         return dict_value
 
     def test_array_element_dictionary(self):
-        """Apply a mapping to a dictionary in an array"""
+        """Apply a transform to a dictionary in an array"""
         xml_string = strip_xml("""
             <results>
                 <data>
@@ -180,10 +180,10 @@ class TestDictionaryValueMapping(object):
 
         processor = xml.array(self._dict_processor, nested='results')
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_non_root_dictionary(self):
-        """Apply a mapping to a non-root dictionary"""
+        """Apply a transform to a non-root dictionary"""
         xml_string = strip_xml("""
             <results>
                 <name>Dataset 1</name>
@@ -209,10 +209,10 @@ class TestDictionaryValueMapping(object):
             self._dict_processor,
         ])
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_root_dictionary(self):
-        """Apply a mapping to a root dictionary"""
+        """Apply a transform to a root dictionary"""
         xml_string = strip_xml("""
             <data>
                 <a>17</a>
@@ -229,11 +229,11 @@ class TestDictionaryValueMapping(object):
 
         processor = self._dict_processor
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     @property
     def _dict_processor(self):
-        mapping = xml.ValueMapping(
+        transform = xml.ValueTransform(
             from_xml=self._from_xml,
             to_xml=self._to_xml
         )
@@ -242,11 +242,11 @@ class TestDictionaryValueMapping(object):
             xml.integer('a'),
             xml.integer('b'),
             xml.integer('c'),
-        ], mapping=mapping)
+        ], transform=transform)
 
 
-class TestUserObjectValueMapping(object):
-    """Map user object values"""
+class TestUserObjectValueTransform(object):
+    """Transform user object values"""
 
     class _Person(object):
 
@@ -263,13 +263,13 @@ class TestUserObjectValueMapping(object):
 
     @staticmethod
     def _to_xml(tuple_value):
-        object_value = TestUserObjectValueMapping._Person()
+        object_value = TestUserObjectValueTransform._Person()
         object_value.name = tuple_value[0]
         object_value.age = tuple_value[1]
         return object_value
 
     def test_array_element_user_object(self):
-        """Apply a mapping to a user object in an array"""
+        """Apply a transform to a user object in an array"""
         xml_string = strip_xml("""
         <people>
             <person>
@@ -290,10 +290,10 @@ class TestUserObjectValueMapping(object):
 
         processor = xml.array(self._user_object_processor, nested='people')
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_non_root_user_object(self):
-        """Apply a mapping to a root user object"""
+        """Apply a transform to a root user object"""
         xml_string = strip_xml("""
         <data>
             <person>
@@ -311,10 +311,10 @@ class TestUserObjectValueMapping(object):
             self._user_object_processor,
         ])
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     def test_root_user_object(self):
-        """Apply a mapping to a root user object"""
+        """Apply a transform to a root user object"""
         xml_string = strip_xml("""
         <person>
             <name>John</name>
@@ -326,11 +326,11 @@ class TestUserObjectValueMapping(object):
 
         processor = self._user_object_processor
 
-        _mapping_test_case_run(processor, value, xml_string)
+        _transform_test_case_run(processor, value, xml_string)
 
     @property
     def _user_object_processor(self):
-        mapping = xml.ValueMapping(
+        transform = xml.ValueTransform(
             from_xml=self._from_xml,
             to_xml=self._to_xml,
         )
@@ -338,11 +338,11 @@ class TestUserObjectValueMapping(object):
         return xml.user_object('person', self._Person, [
             xml.string('name'),
             xml.integer('age'),
-        ], mapping=mapping)
+        ], transform=transform)
 
 
-def test_boolean_mapping():
-    """Map boolean values"""
+def test_boolean_transform():
+    """Transform boolean values"""
     xml_string = strip_xml("""
         <data>
             <value>True</value>
@@ -365,17 +365,17 @@ def test_boolean_mapping():
         else:
             return False
 
-    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.boolean('value', mapping=mapping)
+        xml.boolean('value', transform=transform)
     ])
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_floating_point_mapping():
-    """Map floating point values"""
+def test_floating_point_transform():
+    """Transform floating point values"""
     xml_string = strip_xml("""
         <data>
             <value>13.1</value>
@@ -392,17 +392,17 @@ def test_floating_point_mapping():
     def _to_xml(x):
         return x / 2.0
 
-    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.floating_point('value', mapping=mapping)
+        xml.floating_point('value', transform=transform)
     ])
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_integer_mapping():
-    """Map integer values"""
+def test_integer_transform():
+    """Transform integer values"""
     xml_string = strip_xml("""
         <data>
             <value>3</value>
@@ -419,17 +419,17 @@ def test_integer_mapping():
     def _to_xml(x):
         return int(x / 2)
 
-    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.integer('value', mapping=mapping)
+        xml.integer('value', transform=transform)
     ])
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_missing_from_xml_mapping():
-    """Parse with a missing from XML mapping"""
+def test_missing_from_xml_transform():
+    """Parse with a missing from XML transform"""
     xml_string = strip_xml("""
         <data>
             <value>3</value>
@@ -437,29 +437,29 @@ def test_missing_from_xml_mapping():
     """)
 
     processor = xml.dictionary('data', [
-        xml.integer('value', mapping=xml.ValueMapping())
+        xml.integer('value', transform=xml.ValueTransform())
     ])
 
     with pytest.raises(xml.XmlError):
         xml.parse_from_string(processor, xml_string)
 
 
-def test_missing_to_xml_mapping():
-    """Serialize with a missing to XML mapping"""
+def test_missing_to_xml_transform():
+    """Serialize with a missing to XML transform"""
     value = {
         'value': 6,
     }
 
     processor = xml.dictionary('data', [
-        xml.integer('value', mapping=xml.ValueMapping())
+        xml.integer('value', transform=xml.ValueTransform())
     ])
 
     with pytest.raises(xml.XmlError):
         xml.serialize_to_string(processor, value)
 
 
-def test_named_tuple_mapping():
-    """Map a named tuple value"""
+def test_named_tuple_transform():
+    """Transform a named tuple value"""
     Person = namedtuple('Person', ['name', 'age'])
 
     xml_string = strip_xml("""
@@ -486,13 +486,13 @@ def test_named_tuple_mapping():
     processor = xml.named_tuple('person', Person, [
         xml.string('name'),
         xml.integer('age'),
-    ], mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml))
+    ], transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml))
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_primitive_mapping_array_element():
-    """Map a primitive value that is an array element"""
+def test_primitive_transform_array_element():
+    """Transform a primitive value that is an array element"""
     xml_string = strip_xml("""
     <data>
         <value>3</value>
@@ -514,14 +514,14 @@ def test_primitive_mapping_array_element():
         return int(x / 2)
 
     processor = xml.array(
-        xml.integer('value', mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)),
+        xml.integer('value', transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)),
         nested='data')
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_primitive_mapping_attribute():
-    """Map a primitive value that is an attribute"""
+def test_primitive_transform_attribute():
+    """Transform a primitive value that is an attribute"""
     xml_string = strip_xml("""
     <data>
         <element value="3" />
@@ -539,14 +539,14 @@ def test_primitive_mapping_attribute():
         return int(x / 2)
 
     processor = xml.dictionary('data', [
-        xml.integer('element', attribute='value', mapping=xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml))
+        xml.integer('element', attribute='value', transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml))
     ])
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def test_string_mapping():
-    """Map string values"""
+def test_string_transform():
+    """Transform string values"""
     xml_string = strip_xml("""
         <data>
             <value>hello</value>
@@ -563,17 +563,17 @@ def test_string_mapping():
     def _to_xml(x):
         return x.lower()
 
-    mapping = xml.ValueMapping(from_xml=_from_xml, to_xml=_to_xml)
+    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
 
     processor = xml.dictionary('data', [
-        xml.string('value', mapping=mapping)
+        xml.string('value', transform=transform)
     ])
 
-    _mapping_test_case_run(processor, value, xml_string)
+    _transform_test_case_run(processor, value, xml_string)
 
 
-def _mapping_test_case_run(processor, value, xml_string):
-    """Runs the given value mapping test case"""
+def _transform_test_case_run(processor, value, xml_string):
+    """Runs the given value transform test case"""
     actual_value = xml.parse_from_string(processor, xml_string)
     assert value == actual_value
 

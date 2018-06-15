@@ -80,31 +80,30 @@ class ValueTransform(object):
     receive one argument and should return one value.
 
     The from_xml function will receive the value parsed by the processor from the XML data during
-    parsing. The from_xml function can then perform any arbitrary transformation of the parsed
-    value and return it. The returned transformed value will then be used as the result of the
-    processor's parsing.
+    parsing. The from_xml function can perform any arbitrary transformation on the parsed value.
+    The returned transformed value will be used as the processor's parsing result.
 
-    Similarly, the to_xml value will receive the value to be serialized to XML by the processor
+    Similarly, the to_xml function will receive the value to be serialized to XML by the processor
     during serialization. The to_xml function should transform the value into a shape that can be
     serialized by the processor. The returned transformed value will be used by the processor to
-    serialize the XML data.
+    serialize the data into XML.
 
-    The from_xml and to_xml should be inverse operations to each other. The from_xml function
-    transforms values from the raw XML format into a format the caller wants to use, and the to_xml
-    function performs the inverse transform from a format used by the caller into the raw XML format
-    that can be serialized directly.
+    The from_xml and to_xml functions should be inverse operations of each other. The from_xml
+    function transforms values from the raw XML format into a format the caller wants to use, and
+    the to_xml function performs the inverse transform from a format used by the caller into the
+    raw XML format that can be serialized directly.
 
     If a processor is only ever going to be used for parsing, then the to_xml function may be
     omitted. Likewise, if a processor is only ever going to be used for serializing, then the
-    to_xml function may be omitted as well.
+    from_xml function may be omitted.
 
-    >>> transform = ValueTransform(from_xml=lambda x: x*2, to_xml=lambda x: x/2)
-    >>> processor = dictionary('data', [floating_point('value', transform=transform)])
-    >>> xml_data = '<data><value>3.0</value></data>'
+    >>> transform = ValueTransform(from_xml=lambda x: x.upper(), to_xml=lambda x: x.lower())
+    >>> processor = dictionary('data', [string('value', transform=transform)])
+    >>> xml_data = '<data><value>hello</value></data>'
     >>> parse_from_string(processor, xml_data)
-    {'value': 6.0}
-    >>> serialize_to_string(processor, {'value': 6})
-    '<data><value>3.0</value></data>'
+    {'value': 'HELLO'}
+    >>> serialize_to_string(processor, {'value': 'HELLO'})
+    '<data><value>hello</value></data>'
     """
 
     def __init__(self, from_xml=None, to_xml=None):

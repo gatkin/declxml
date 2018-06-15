@@ -10,11 +10,6 @@ from .helpers import strip_xml
 class TestArrayValueTransform(object):
     """Transform array values"""
 
-    _array_item_processor = xml.dictionary('value', [
-                xml.string('.', attribute='key'),
-                xml.integer('.', alias='value')
-            ])
-
     @staticmethod
     def _from_xml(array_value):
         dict_value = OrderedDict()
@@ -119,13 +114,16 @@ class TestArrayValueTransform(object):
 
     @property
     def _item_processor(self):
-        return TestArrayValueTransform._array_item_processor
+        return xml.dictionary('value', [
+                xml.string('.', attribute='key'),
+                xml.integer('.', alias='value')
+            ])
 
     @property
     def _transform(self):
         return xml.ValueTransform(
-            from_xml=TestArrayValueTransform._from_xml,
-            to_xml=TestArrayValueTransform._to_xml
+            from_xml=self._from_xml,
+            to_xml=self._to_xml
         )
 
 
@@ -259,7 +257,7 @@ class TestUserObjectValueTransform(object):
 
     @staticmethod
     def _from_xml(object_value):
-        return (object_value.name, object_value.age)
+        return object_value.name, object_value.age
 
     @staticmethod
     def _to_xml(tuple_value):
@@ -339,6 +337,40 @@ class TestUserObjectValueTransform(object):
             xml.string('name'),
             xml.integer('age'),
         ], transform=transform)
+
+
+def test_aggregate_transform_missing_from_xml():
+    """Parse with a missing aggregate transform"""
+    xml_string = strip_xml("""
+    <data>
+        <value key="a">1</value>
+        <value key="b">2</value>
+    </data>
+    """)
+
+    processor = xml.array(xml.dictionary('value', [
+        xml.string('.', attribute='key'),
+        xml.integer('.', alias='value'),
+    ]), transform=xml.ValueTransform())
+
+    with pytest.raises(xml.XmlError):
+        xml.parse_from_string(processor, xml_string)
+
+
+def test_aggregate_transform_missing_to_xml():
+    """Serialize with a missing aggregate transform"""
+    value = {
+        'a': 1,
+        'b': 2,
+    }
+
+    processor = xml.array(xml.dictionary('value', [
+        xml.string('.', attribute='key'),
+        xml.integer('.', alias='value'),
+    ]), transform=xml.ValueTransform())
+
+    with pytest.raises(xml.XmlError):
+        xml.serialize_to_string(processor, value)
 
 
 def test_boolean_transform():
@@ -428,36 +460,6 @@ def test_integer_transform():
     _transform_test_case_run(processor, value, xml_string)
 
 
-def test_missing_from_xml_transform():
-    """Parse with a missing from XML transform"""
-    xml_string = strip_xml("""
-        <data>
-            <value>3</value>
-        </data>
-    """)
-
-    processor = xml.dictionary('data', [
-        xml.integer('value', transform=xml.ValueTransform())
-    ])
-
-    with pytest.raises(xml.XmlError):
-        xml.parse_from_string(processor, xml_string)
-
-
-def test_missing_to_xml_transform():
-    """Serialize with a missing to XML transform"""
-    value = {
-        'value': 6,
-    }
-
-    processor = xml.dictionary('data', [
-        xml.integer('value', transform=xml.ValueTransform())
-    ])
-
-    with pytest.raises(xml.XmlError):
-        xml.serialize_to_string(processor, value)
-
-
 def test_named_tuple_transform():
     """Transform a named tuple value"""
     Person = namedtuple('Person', ['name', 'age'])
@@ -543,6 +545,36 @@ def test_primitive_transform_attribute():
     ])
 
     _transform_test_case_run(processor, value, xml_string)
+
+
+def test_primitive_transform_missing_from_xml():
+    """Parse with a missing from XML transform"""
+    xml_string = strip_xml("""
+        <data>
+            <value>3</value>
+        </data>
+    """)
+
+    processor = xml.dictionary('data', [
+        xml.integer('value', transform=xml.ValueTransform())
+    ])
+
+    with pytest.raises(xml.XmlError):
+        xml.parse_from_string(processor, xml_string)
+
+
+def test_primitive_transform_missing_to_xml():
+    """Serialize with a missing to XML transform"""
+    value = {
+        'value': 6,
+    }
+
+    processor = xml.dictionary('data', [
+        xml.integer('value', transform=xml.ValueTransform())
+    ])
+
+    with pytest.raises(xml.XmlError):
+        xml.serialize_to_string(processor, value)
 
 
 def test_string_transform():

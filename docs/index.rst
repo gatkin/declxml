@@ -30,6 +30,7 @@ Install with pip
    :maxdepth: 2
 
    guide
+   advanced_guide
    api
 
 
@@ -103,4 +104,4 @@ serialization.
           <published>1951</published>
        </book>
     </author>
-    >>>
+

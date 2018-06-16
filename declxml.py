@@ -27,6 +27,10 @@ dictionaries, arrays, and user objects.
 .. autofunction:: declxml.named_tuple
 .. autofunction:: declxml.user_object
 
+Value Transformers
+-----------------
+.. autoclass:: declxml.ValueTransform
+
 Parsing
 ----------
 .. autofunction:: declxml.parse_from_file
@@ -85,8 +89,8 @@ class ValueTransform(object):
 
     Similarly, the to_xml function will receive the value to be serialized to XML by the processor
     during serialization. The to_xml function should transform the value into a shape that can be
-    serialized by the processor. The returned transformed value will be used by the processor to
-    serialize the data into XML.
+    serialized by the processor. The transformed value returned by the to_xml function will be
+    provided to the processor to serialize into XML.
 
     The from_xml and to_xml functions should be inverse operations of each other. The from_xml
     function transforms values from the raw XML format into a format the caller wants to use, and
@@ -97,8 +101,13 @@ class ValueTransform(object):
     omitted. Likewise, if a processor is only ever going to be used for serializing, then the
     from_xml function may be omitted.
 
-    >>> transform = ValueTransform(from_xml=lambda x: x.upper(), to_xml=lambda x: x.lower())
-    >>> processor = dictionary('data', [string('value', transform=transform)])
+    >>> transform = ValueTransform(
+    ...     from_xml=lambda x: x.upper(),
+    ...     to_xml=lambda x: x.lower()
+    ... )
+    >>> processor = dictionary('data',[
+    ...     string('value', transform=transform)
+    ... ])
     >>> xml_data = '<data><value>hello</value></data>'
     >>> parse_from_string(processor, xml_data)
     {'value': 'HELLO'}

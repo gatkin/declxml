@@ -64,8 +64,13 @@ Then, use that processor to parse XML data
 ...     </book>
 ... </author>
 ... """
->>> xml.parse_from_string(author_processor, author_xml)
-{'name': 'Robert A. Heinlein', 'birth-year': 1907, 'books': [{'title': 'Starship Troopers', 'published': 1959}, {'title': 'Stranger in a Strange Land', 'published': 1961}]}
+>>> author = xml.parse_from_string(author_processor, author_xml)
+>>> from pprint import pprint
+>>> pprint(author)
+{'birth-year': 1907,
+     'books': [{'published': 1959, 'title': 'Starship Troopers'},
+               {'published': 1961, 'title': 'Stranger in a Strange Land'}],
+     'name': 'Robert A. Heinlein'}
 >>>
 ```
 

@@ -41,6 +41,7 @@ serialization.
 .. sourcecode:: py
 
     >>> import declxml as xml
+    >>> from pprint import pprint
 
     >>> author_processor = xml.dictionary('author', [
     ...     xml.string('name'),
@@ -66,9 +67,7 @@ serialization.
     ... </author>
     ... """
 
-    >>> author = xml.parse_from_string(author_processor, author_xml)
-    >>> from pprint import pprint
-    >>> pprint(author)
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
     {'birth-year': 1907,
      'books': [{'published': 1959, 'title': 'Starship Troopers'},
                {'published': 1961, 'title': 'Stranger in a Strange Land'}],

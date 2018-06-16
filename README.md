@@ -45,11 +45,12 @@ Create a declxml processor that defines the structure of the document
 ...         xml.integer('published')
 ...     ]), alias='books')
 ... ])
->>>
+
 ```
 
 Then, use that processor to parse XML data
 ```python
+>>> from pprint import pprint
 >>> author_xml = """
 ... <author>
 ...     <name>Robert A. Heinlein</name>
@@ -64,14 +65,12 @@ Then, use that processor to parse XML data
 ...     </book>
 ... </author>
 ... """
->>> author = xml.parse_from_string(author_processor, author_xml)
->>> from pprint import pprint
->>> pprint(author)
+>>> pprint(xml.parse_from_string(author_processor, author_xml))
 {'birth-year': 1907,
      'books': [{'published': 1959, 'title': 'Starship Troopers'},
                {'published': 1961, 'title': 'Stranger in a Strange Land'}],
      'name': 'Robert A. Heinlein'}
->>>
+
 ```
 
 The same processor can also be used to serialize data to XML
@@ -106,7 +105,7 @@ The same processor can also be used to serialize data to XML
         <published>1951</published>
     </book>
 </author>
->>>
+
 ```
 
 Want to work with objects instead of dictionaries? You can do that with declxml too.
@@ -143,7 +142,7 @@ Want to work with objects instead of dictionaries? You can do that with declxml 
 
 >>> xml.parse_from_string(author_processor, author_xml)
 Author(name='Robert A. Heinlein', birth_year=1907, books=[Book(title='Starship Troopers', published=1959), Book(title='Stranger in a Strange Land', published=1961)])
->>>
+
 ```
 
 What about namedtuples, you say? Those are extremely useful, and declxml lets you work with them as well
@@ -166,5 +165,5 @@ What about namedtuples, you say? Those are extremely useful, and declxml lets yo
 
 >>> xml.parse_from_string(author_processor, author_xml)
 Author(name='Robert A. Heinlein', birth_year=1907, books=[Book(title='Starship Troopers', published=1959), Book(title='Stranger in a Strange Land', published=1961)])
->>>
+
 ```

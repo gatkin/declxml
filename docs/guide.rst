@@ -1,6 +1,6 @@
 Guide
 =====
-The basic building blocks used in the declxml library are *processor* objects. Processors are used to define the structure of the
+The basic building blocks used in the declxml library are *processor* objects. Processors are used to define the structure of an
 XML document. There are two types of processors:
 
 * **Primitive** processors - Used for processing simple, primitive values like booleans, integers, floats, and strings.
@@ -13,21 +13,23 @@ contained within an "id" element:
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    xml.integer('id')
+    >>> xml.integer('id')
+    <declxml._PrimitiveValue object at ...>
 
 Aggregate processors are created by specifying a list of child processors that compose the aggregate. The following creates a processor
-for a dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
+for dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    xml.dictionary('user', [
-        xml.integer('id'),
-        xml.string('user-name')
-    ])
+    >>> xml.dictionary('user', [
+    ...     xml.integer('id'),
+    ...     xml.string('user-name')
+    ... ])
+    <declxml._Dictionary object at ...>
 
 
 Parsing and Serialization
@@ -36,32 +38,32 @@ Processors define the structure of an XML document and are used to both parse an
 
 .. sourcecode:: py
 
-    import declxml as xml 
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_xml = """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>1907</birth-year>
+    ... </author>
+    ... """
+
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year')
+    ... ])
+
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'birth-year': 1907, 'name': 'Robert A. Heinlein'}
+
+
+    >>> author = {'name': 'Isaac Asimov', 'birth-year': 1920}
+    >>> print(xml.serialize_to_string(author_processor, author, indent='  '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>1907</birth-year>
+      <name>Isaac Asimov</name>
+      <birth-year>1920</birth-year>
     </author>
-    """
-
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year')
-    ])
-
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'Robert A. Heinlein', 'birth-year': 1907}
-
-
-    author = {'name': 'Isaac Asimov', 'birth-year': 1920}
-    xml.serialize_to_string(author_processor, author, indent='  ')
-    """
-    <author>
-        <name>Isaac Asimov</name>
-        <birth-year>1920</birth-year>
-    </author>
-    """
 
 Attributes
 ----------
@@ -69,33 +71,33 @@ Processors may be configured to read and write values from attributes.
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year'),
-        xml.string('birth-year', attribute='birth-month')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year'),
+    ...     xml.string('birth-year', attribute='birth-month')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year birth-month="July">1907</birth-year>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year birth-month="July">1907</birth-year>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'Robert A. Heinlein', 'birth-year': 1907 'birth-month': 'July'}
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'birth-month': 'July', 'birth-year': 1907, 'name': 'Robert A. Heinlein'}
 
 
-    author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'birth-month': 'January'}
-    xml.serialize_to_string(author_processor, author, indent='    ')
-    """
+    >>> author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'birth-month': 'January'}
+    >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
         <name>Isaac Asimov</name>
         <birth-year birth-month="January">1920</birth-year>
     </author>
-    """
 
 Validation
 ----------
@@ -103,43 +105,47 @@ Processors can perform basic validation such as ensuring required elements are p
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # MissingValue: Missing required element: "birth-year"
+    >>> xml.parse_from_string(author_processor, author_xml)
+    Traceback (most recent call last):
+    ...
+    MissingValue: Missing required element "birth-year" at author/birth-year
 
 
 Processors also ensure values are of the correct type.
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>Hello</birth-year>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>Hello</birth-year>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # InvalidPrimitiveValue: Invalid integer value: "Hello"
+    >>> xml.parse_from_string(author_processor, author_xml)
+    Traceback (most recent call last):
+    ...
+    InvalidPrimitiveValue: Invalid numeric value "Hello" at author/birth-year
 
 
 Optional and Default Values
@@ -148,35 +154,36 @@ Processors may specify optional and default values.
 
 .. sourcecode:: py
 
-    import declxml as xml 
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year'),
-        xml.string('genre', required=False, default='Science Fiction')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year'),
+    ...     xml.string('genre', required=False, default='Science Fiction')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>1907</birth-year>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>1907</birth-year>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'Robert A. Heinlein', 'birth-year': 1907 'genre': 'Science Fiction'}
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'birth-year': 1907, 'genre': 'Science Fiction', 'name': 'Robert A. Heinlein'}
 
 
-    author_xml = """
-    <author>
-        <name>J. K. Rowling</name>
-        <birth-year>1965</birth-year>
-        <genre>Fantasy</genre>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>J. K. Rowling</name>
+    ...     <birth-year>1965</birth-year>
+    ...     <genre>Fantasy</genre>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'J. K. Rowling', 'birth-year': 1965, 'genre': 'Fantasy'}
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'birth-year': 1965, 'genre': 'Fantasy', 'name': 'J. K. Rowling'}
 
 
 Aliases
@@ -186,32 +193,32 @@ the value in Python.
 
 .. sourcecode:: python
 
-    import declxml as xml 
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_xml = """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>1907</birth-year>
+    ... </author>
+    ... """
+
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name', alias='author_name'),
+    ...     xml.integer('birth-year', alias='year_born')
+    ... ])
+
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'author_name': 'Robert A. Heinlein', 'year_born': 1907}
+
+
+    >>> author = {'author_name': 'Isaac Asimov', 'year_born': 1920}
+    >>> print(xml.serialize_to_string(author_processor, author, indent='   '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>1907</birth-year>
+       <name>Isaac Asimov</name>
+       <birth-year>1920</birth-year>
     </author>
-    """
-
-    author_processor = xml.dictionary('author', [
-        xml.string('name', alias='author_name'),
-        xml.integer('birth-year', alias='year_born')
-    ])
-
-    xml.parse_from_string(author_processor, author_xml)
-    # {'author_name': 'Robert A. Heinlein', 'year_born': 1907}
-
-
-    author = {'author_name': 'Isaac Asimov', 'year_born': 1920}
-    xml.serialize_to_string(author_processor, author, indent='   ')
-    """
-    <author>
-        <name>Isaac Asimov</name>
-        <birth-year>1920</birth-year>
-    </author>
-    """
 
 Omitting Empty Values
 ---------------------
@@ -219,32 +226,30 @@ Processors can be configured to omit missing or falsey values when serializing. 
 
 .. sourcecode:: python
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year'),
-        xml.integer('nationality', required=False, omit_empty=True)
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year'),
+    ...     xml.string('nationality', required=False, omit_empty=True)
+    ... ])
 
-    author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'nationality': ''}
-    xml.serialize_to_string(author_processor, author, indent='    ')
-    """
+    >>> author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'nationality': ''}
+    >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
         <name>Isaac Asimov</name>
         <birth-year>1920</birth-year>
     </author>
-    """
 
-    author = {'name': 'Robert A. Heinlein', 'birth-year': 1907, 'nationality': 'American'}
-    xml.serialize_to_string(author_processor, author, indent='    ')
-    """
+    >>> author = {'name': 'Robert A. Heinlein', 'birth-year': 1907, 'nationality': 'American'}
+    >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
         <name>Robert A. Heinlein</name>
         <birth-year>1907</birth-year>
         <nationality>American</nationality>
     </author>
-    """
 
 
 Arrays
@@ -252,51 +257,55 @@ Arrays
 Processors can be defined for array values. When creating an array processor, a processor must be specified for processing
 the array's items. An array is treated as optional if its item processor is configured as optional.
 
-An array can either be *embedded* or *nested*. An embedded array is embedded directly within its parent.
+An array can be either *embedded* or *nested*. An embedded array is embedded directly within its parent as in the following:
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.array(xml.string('book'), alias='books')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.array(xml.string('book'), alias='books')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-        <book>Starship Troopers</book>
-        <book>Stranger in a Strange Land</book>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <book>Starship Troopers</book>
+    ...     <book>Stranger in a Strange Land</book>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'Robert A. Heinlein', 'books': ['Starship Troopers', 'Stranger in a Strange Land']}
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'books': ['Starship Troopers', 'Stranger in a Strange Land'],
+     'name': 'Robert A. Heinlein'}
 
 A nested array is nested within a separate array element
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.array(xml.string('book'), nested='books')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.array(xml.string('book'), nested='books')
+    ... ])
 
-    author_xml = """
-    <author>
-        <name>Robert A. Heinlein</name>
-        <books>
-            <book>Starship Troopers</book>
-            <book>Stranger in a Strange Land</book>
-        </books>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <books>
+    ...         <book>Starship Troopers</book>
+    ...         <book>Stranger in a Strange Land</book>
+    ...     </books>
+    ... </author>
+    ... """
 
-    xml.parse_from_string(author_processor, author_xml)
-    # {'name': 'Robert A. Heinlein', 'books': ['Starship Troopers', 'Stranger in a Strange Land']}
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'books': ['Starship Troopers', 'Stranger in a Strange Land'],
+     'name': 'Robert A. Heinlein'}
 
 
 Composing Processors
@@ -305,70 +314,68 @@ Processors can be composed to define more complex document structures.
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    genre_xml = """
-    <genre-authors>
-        <genre>Science Fiction</genre>
-        <author>
-            <name>Robert A. Heinlein</name>
-            <birth-year>1907</birth-year>
-            <book>
-                <title>Starship Troopers</title>
-                <year-published>1959</year-published>
-            </book>
-            <book>
-                <title>Stranger in a Strange Land</title>
-                <year-published>1961</year-published>
-            </book>
-        </author>
-        <author>
-            <name>Isaac Asimov</name>
-            <birth-year>1920</birth-year>
-            <book>
-                <title>I, Robot</title>
-                <year-published>1950</year-published>
-            </book>
-            <book>
-                <title>Foundation</title>
-                <year-published>1951</year-published>
-            </book>
-        </author>
-    </genre-authors>
-    """
+    >>> genre_xml = """
+    ... <genre-authors>
+    ...     <genre>Science Fiction</genre>
+    ...     <author>
+    ...         <name>Robert A. Heinlein</name>
+    ...         <birth-year>1907</birth-year>
+    ...         <book>
+    ...             <title>Starship Troopers</title>
+    ...             <year-published>1959</year-published>
+    ...         </book>
+    ...         <book>
+    ...             <title>Stranger in a Strange Land</title>
+    ...             <year-published>1961</year-published>
+    ...         </book>
+    ...     </author>
+    ...     <author>
+    ...         <name>Isaac Asimov</name>
+    ...         <birth-year>1920</birth-year>
+    ...         <book>
+    ...             <title>I, Robot</title>
+    ...             <year-published>1950</year-published>
+    ...         </book>
+    ...         <book>
+    ...             <title>Foundation</title>
+    ...             <year-published>1951</year-published>
+    ...         </book>
+    ...     </author>
+    ... </genre-authors>
+    ... """
 
-    book_processor = xml.dictionary('book', [
-        xml.string('title'),
-        xml.integer('year-published')
-    ])
+    >>> book_processor = xml.dictionary('book', [
+    ...     xml.string('title'),
+    ...     xml.integer('year-published')
+    ... ])
 
-    author_processor = xml.dictionary('author', [
-        xml.string('name'),
-        xml.integer('birth-year'),
-        xml.array(book_processor, alias='books')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year'),
+    ...     xml.array(book_processor, alias='books')
+    ... ])
 
-    genre_processor = xml.dictionary('genre-authors', [
-        xml.string('genre'),
-        xml.array(author_processor, alias='authors')
-    ])
+    >>> genre_processor = xml.dictionary('genre-authors', [
+    ...     xml.string('genre'),
+    ...     xml.array(author_processor, alias='authors')
+    ... ])
 
 
-    xml.parse_from_string(genre_processor, genre_xml)
-    { 'genre': 'Science Fiction',
-      'authors': [ { 'name': 'Robert A. Heinlein',
-                 'birth-year': 1907,
-                 'books': [ { 'title': 'Starship Troopers',
-                              'year-published': 1959},
-                            { 'title': 'Stranger in a Strange Land',
-                              'year-published': 1961}],
-                 },
-               { 'name': 'Isaac Asimov',
-                 'birth-year': 1920,
-                 'books': [ {'title': 'I, Robot', 'year-published': 1950},
+    >>> pprint(xml.parse_from_string(genre_processor, genre_xml))
+    {'authors': [{'birth-year': 1907,
+                  'books': [{'title': 'Starship Troopers',
+                             'year-published': 1959},
+                            {'title': 'Stranger in a Strange Land',
+                             'year-published': 1961}],
+                  'name': 'Robert A. Heinlein'},
+                 {'birth-year': 1920,
+                  'books': [{'title': 'I, Robot', 'year-published': 1950},
                             {'title': 'Foundation', 'year-published': 1951}],
-                 }],
-    }
+                  'name': 'Isaac Asimov'}],
+     'genre': 'Science Fiction'}
 
 
 XPath Syntax
@@ -377,59 +384,58 @@ declxml supports a very small subset of XPath syntax that enables greater expres
 
 The Dot (.) Selector
 """"""""""""""""""""
-The dot (.) selector can be used in a processor to refer to the containing processor's element. For instance, the dot operator can
+The dot (.) selector can be used in a processor to refer to the parent processor's element. For instance, the dot operator can
 be used to refer to attributes on a childless element.
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    books_xml = """
-    <books>
-        <book title="I, Robot" author="Isaac Asimov" />
-        <book title="Foundation" author="Isaac Asimov" />
-        <book title="Nemesis" author="Isaac Asimov" />
-    </books>
-    """
+    >>> books_xml = """
+    ... <books>
+    ...     <book title="I, Robot" author="Isaac Asimov" />
+    ...     <book title="Foundation" author="Isaac Asimov" />
+    ...     <book title="Nemesis" author="Isaac Asimov" />
+    ... </books>
+    ... """
 
-    books_processor = xml.array(xml.dictionary('book', [
-        xml.string('.', attribute='title'),  # Select the attribute "title" on the element "book"
-        xml.string('.', attribute='author'),
-    ]), nested='books')
+    >>> books_processor = xml.array(xml.dictionary('book', [
+    ...     xml.string('.', attribute='title'),  # Select the attribute "title" on the element "book"
+    ...     xml.string('.', attribute='author'),
+    ... ]), nested='books')
 
 
-    xml.parse_from_string(books_processor, books_xml)
-    [
-        {'author': 'Isaac Asimov', 'title': 'I, Robot'},
-        {'author': 'Isaac Asimov', 'title': 'Foundation'},
-        {'author': 'Isaac Asimov', 'title': 'Nemesis'}
-    ]
+    >>> pprint(xml.parse_from_string(books_processor, books_xml))
+    [{'author': 'Isaac Asimov', 'title': 'I, Robot'},
+     {'author': 'Isaac Asimov', 'title': 'Foundation'},
+     {'author': 'Isaac Asimov', 'title': 'Nemesis'}]
+
 
 
 The dot operator can also be used to group an element's attribute values with the values of the element's children
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    author_xml = """
-    <author name="Liu Cixin">
-        <book>The Three Body Problem</book>
-        <book>The Dark Forest</book>
-        <book>Deaths End</book>
-    </author>
-    """
+    >>> author_xml = """
+    ... <author name="Liu Cixin">
+    ...     <book>The Three Body Problem</book>
+    ...     <book>The Dark Forest</book>
+    ...     <book>Deaths End</book>
+    ... </author>
+    ... """
 
-    author_processor = xml.dictionary('author', [
-        xml.string('.', attribute='name'),
-        xml.array(xml.string('book'), alias='books')
-    ])
+    >>> author_processor = xml.dictionary('author', [
+    ...     xml.string('.', attribute='name'),
+    ...     xml.array(xml.string('book'), alias='books')
+    ... ])
 
-    xml.parse_from_string(author_processor, author_xml)
-    {
-        'name': 'Liu Cixin',
-        'books': ['The Three Body Problem', 'The Dark Forest', "Deaths End"],
-    }
+    >>> pprint(xml.parse_from_string(author_processor, author_xml))
+    {'books': ['The Three Body Problem', 'The Dark Forest', 'Deaths End'],
+     'name': 'Liu Cixin'}
 
 The Path (/) Selector
 """""""""""""""""""""
@@ -437,50 +443,49 @@ The path selector (/) can be used to select descendant elements which can be use
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
+    >>> from pprint import pprint
 
-    hugo_xml = """
-    <awards>
-        <hugo>
-            <winners>
-                <winner>
-                    <year>2017</year>
-                    <book>
-                        <title>The Obelisk Gate</title>
-                        <author>N. K. Jemisin</author>
-                    </book>
-                </winner>
-                <winner>
-                    <year>2016</year>
-                    <book>
-                        <title>The Fifth Season</title>
-                        <author> N.K. Jemisin</author>
-                    </book>
-                </winner>
-                <winner>
-                    <year>2015</year>
-                    <book>
-                        <title>The Three Body Problem</title>
-                        <author>Liu Cixin</author>
-                    </book>
-                </winner>
-            </winners>
-        </hugo>
-    </awards>
-    """
+    >>> hugo_xml = """
+    ... <awards>
+    ...     <hugo>
+    ...         <winners>
+    ...             <winner>
+    ...                 <year>2017</year>
+    ...                 <book>
+    ...                     <title>The Obelisk Gate</title>
+    ...                     <author>N. K. Jemisin</author>
+    ...                 </book>
+    ...             </winner>
+    ...             <winner>
+    ...                 <year>2016</year>
+    ...                 <book>
+    ...                     <title>The Fifth Season</title>
+    ...                     <author> N.K. Jemisin</author>
+    ...                 </book>
+    ...             </winner>
+    ...             <winner>
+    ...                 <year>2015</year>
+    ...                 <book>
+    ...                     <title>The Three Body Problem</title>
+    ...                     <author>Liu Cixin</author>
+    ...                 </book>
+    ...             </winner>
+    ...         </winners>
+    ...     </hugo>
+    ... </awards>
+    ... """
 
-    hugo_processor = xml.array(xml.dictionary('winner', [
-        xml.integer('year'),
-        xml.string('book/title', alias='title'),
-        xml.string('book/author', alias='author'),
-    ]), nested='awards/hugo/winners')
+    >>> hugo_processor = xml.array(xml.dictionary('winner', [
+    ...     xml.integer('year'),
+    ...     xml.string('book/title', alias='title'),
+    ...     xml.string('book/author', alias='author'),
+    ... ]), nested='awards/hugo/winners')
 
-    xml.parse_from_string(hugo_processor, hugo_xml)
-    [
-        {'author': 'N. K. Jemisin', 'title': 'The Obelisk Gate', 'year': 2017},
-        {'author': 'N.K. Jemisin', 'title': 'The Fifth Season', 'year': 2016},
-        {'author': 'Liu Cixin', 'title': 'The Three Body Problem', 'year': 2015}
-    ]
+    >>> pprint(xml.parse_from_string(hugo_processor, hugo_xml))
+    [{'author': 'N. K. Jemisin', 'title': 'The Obelisk Gate', 'year': 2017},
+     {'author': 'N.K. Jemisin', 'title': 'The Fifth Season', 'year': 2016},
+     {'author': 'Liu Cixin', 'title': 'The Three Body Problem', 'year': 2015}]
 
 The data will be serialized back into the deeply nested XML structure if the processor is used to perform serialization.
 
@@ -496,45 +501,44 @@ Simply provide the class to the processor factory function.
 
 .. sourcecode:: py
 
-    import declxml as xml
+    >>> import declxml as xml
 
-    class Author:
-
-        def __init__(self):
-            self.name = None
-            self.birth_year = None
-
-        def __repr__(self):
-            return 'Author(name={}, birth_year={})'.format(
-                self.name, self.birth_year)
+    >>> class Author:
+    ...
+    ...    def __init__(self):
+    ...        self.name = None
+    ...        self.birth_year = None
+    ...
+    ...    def __repr__(self):
+    ...        return 'Author(name=\'{}\', birth_year={})'.format(
+    ...            self.name, self.birth_year)
 
     
-    author_processor = xml.user_object('author', Author, [
-        xml.string('name'),
-        xml.integer('birth-year', alias='birth_year')
-    ])
+    >>> author_processor = xml.user_object('author', Author, [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year', alias='birth_year')
+    ... ])
 
-    author_xml = """
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>1907</birth-year>
+    ... </author>
+    ... """
+
+    >>> xml.parse_from_string(author_processor, author_xml)
+    Author(name='Robert A. Heinlein', birth_year=1907)
+
+    >>> author = Author()
+    >>> author.name = 'Isaac Asimov'
+    >>> author.birth_year = 1920
+
+    >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>1907</birth-year>
+      <name>Isaac Asimov</name>
+      <birth-year>1920</birth-year>
     </author>
-    """
-
-    xml.parse_from_string(author_processor, author_xml)
-    # Author(name=Robert A. Heinlein, birth_year=1907)
-
-    author = Author()
-    author.name = 'Isaac Asimov'
-    author.birth_year = 1920
-
-    xml.serialize_to_string(author_processor, author, indent='    ')
-    """
-    <author>
-        <name>Isaac Asimov</name>
-        <birth-year>1920</birth-year>
-    </author>
-    """
 
 Note that the class provided to the `user_object` factory function must have a zero-argument constructor.
 It is also possible to pass any other callable object that takes zero parameters and returns an object
@@ -547,34 +551,32 @@ Processors may also be created for named tuple values.
 
 .. sourcecode:: py
 
-    from collections import namedtuple
+    >>> from collections import namedtuple
+    >>> import declxml as xml
 
-    import declxml as xml
+
+    >>> Author = namedtuple('Author', ['name', 'birth_year'])
 
     
-    Author = namedtuple('Author', ['name', 'birth_year'])
+    >>> author_processor = xml.named_tuple('author', Author, [
+    ...     xml.string('name'),
+    ...     xml.integer('birth-year', alias='birth_year')
+    ... ])
 
-    
-    author_processor = xml.named_tuple('author', Author, [
-        xml.string('name'),
-        xml.integer('birth-year', alias='birth_year')
-    ])
+    >>> author_xml = """
+    ... <author>
+    ...     <name>Robert A. Heinlein</name>
+    ...     <birth-year>1907</birth-year>
+    ... </author>
+    ... """
 
-    author_xml = """
+    >>> xml.parse_from_string(author_processor, author_xml)
+    Author(name='Robert A. Heinlein', birth_year=1907)
+
+    >>> author = Author(name='Isaac Asimov', birth_year=1920)
+    >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
+    <?xml version="1.0" encoding="utf-8"?>
     <author>
-        <name>Robert A. Heinlein</name>
-        <birth-year>1907</birth-year>
+      <name>Isaac Asimov</name>
+      <birth-year>1920</birth-year>
     </author>
-    """
-
-    xml.parse_from_string(author_processor, author_xml)
-    # Author(name='Robert A. Heinlein', birth_year=1907)
-
-    author = Author(name='Isaac Asimov', birth_year=1920)
-    xml.serialize_to_string(author_processor, author, indent='    ')
-    """
-    <author>
-        <name>Isaac Asimov</name>
-        <birth-year>1920</birth-year>
-    </author>
-    """

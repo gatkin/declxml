@@ -10,14 +10,6 @@ environment:
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "x64"
 
-    - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3"
-      PYTHON_ARCH: "x86"
-
-    - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3"
-      PYTHON_ARCH: "x64"
-
     - PYTHON: "C:\\Python34"
       PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "x86"
@@ -50,7 +42,3 @@ install:
 
 test_script:
   - "%PYTHON%/Scripts/coverage.exe run tests/run_tests.py"
-
-after_test:
-  - "%PYTHON%/Scripts/codecov.exe"
-

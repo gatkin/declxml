@@ -28,7 +28,7 @@ dictionaries, arrays, and user objects.
 .. autofunction:: declxml.user_object
 
 Value Transformers
------------------
+------------------
 .. autoclass:: declxml.ValueTransform
 
 Parsing
@@ -54,6 +54,11 @@ import sys
 import warnings
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
+
+
+# Prevent flake8 from flagging an undefined name with Python 3.
+if sys.version_info[0] == 3:
+    unicode = str
 
 
 class XmlError(Exception):
@@ -204,7 +209,9 @@ def serialize_to_string(root_processor, value, indent=None):
     # Since element tree does not support pretty printing XML, we use minidom to do the pretty
     # printing
     if indent:
-        serialized_value = minidom.parseString(serialized_value).toprettyxml(indent=indent, encoding='utf-8')
+        serialized_value = minidom.parseString(serialized_value).toprettyxml(
+            indent=indent, encoding='utf-8'
+        )
 
     return serialized_value.decode('utf-8')
 
@@ -262,7 +269,15 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, transform=N
     return _processor_wrap_if_transform(processor, transform)
 
 
-def boolean(element_name, attribute=None, required=True, alias=None, default=False, omit_empty=False, transform=None):
+def boolean(
+    element_name,
+    attribute=None,
+    required=True,
+    alias=None,
+    default=False,
+    omit_empty=False,
+    transform=None
+):
     """
     Creates a processor for boolean values.
 
@@ -284,7 +299,16 @@ def boolean(element_name, attribute=None, required=True, alias=None, default=Fal
 
     :return: A declxml processor object.
     """
-    return _PrimitiveValue(element_name, _parse_boolean, attribute, required, alias, default, omit_empty, transform)
+    return _PrimitiveValue(
+        element_name,
+        _parse_boolean,
+        attribute,
+        required,
+        alias,
+        default,
+        omit_empty,
+        transform
+    )
 
 
 def dictionary(element_name, children, required=True, alias=None, transform=None):
@@ -306,27 +330,68 @@ def dictionary(element_name, children, required=True, alias=None, transform=None
     return _processor_wrap_if_transform(processor, transform)
 
 
-def floating_point(element_name, attribute=None, required=True, alias=None, default=0.0, omit_empty=False, transform=None):
+def floating_point(
+    element_name,
+    attribute=None,
+    required=True,
+    alias=None,
+    default=0.0,
+    omit_empty=False,
+    transform=None
+):
     """
     Creates a processor for floating point values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(float)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
+    return _PrimitiveValue(
+        element_name,
+        value_parser,
+        attribute,
+        required,
+        alias,
+        default,
+        omit_empty,
+        transform
+    )
 
 
-def integer(element_name, attribute=None, required=True, alias=None, default=0, omit_empty=False, transform=None):
+def integer(
+    element_name,
+    attribute=None,
+    required=True,
+    alias=None,
+    default=0,
+    omit_empty=False,
+    transform=None
+):
     """
     Creates a processor for integer values.
 
     See also :func:`declxml.boolean`
     """
     value_parser = _number_parser(int)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
+    return _PrimitiveValue(
+        element_name,
+        value_parser,
+        attribute,
+        required,
+        alias,
+        default,
+        omit_empty,
+        transform
+    )
 
 
-def named_tuple(element_name, tuple_type, child_processors, required=True, alias=None, transform=None):
+def named_tuple(
+    element_name,
+    tuple_type,
+    child_processors,
+    required=True,
+    alias=None,
+    transform=None
+):
     """
     Creates a processor for namedtuple values.
 
@@ -335,10 +400,26 @@ def named_tuple(element_name, tuple_type, child_processors, required=True, alias
     See also :func:`declxml.dictionary`
     """
     converter = _named_tuple_converter(tuple_type)
-    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform)
+    return _aggregate_processor_create(
+        element_name,
+        converter,
+        child_processors,
+        required,
+        alias,
+        transform
+    )
 
 
-def string(element_name, attribute=None, required=True, alias=None, default='', omit_empty=False, strip_whitespace=True, transform=None):
+def string(
+    element_name,
+    attribute=None,
+    required=True,
+    alias=None,
+    default='',
+    omit_empty=False,
+    strip_whitespace=True,
+    transform=None
+):
     """
     Creates a processor for string values.
 
@@ -348,7 +429,16 @@ def string(element_name, attribute=None, required=True, alias=None, default='', 
     See also :func:`declxml.boolean`
     """
     value_parser = _string_parser(strip_whitespace)
-    return _PrimitiveValue(element_name, value_parser, attribute, required, alias, default, omit_empty, transform)
+    return _PrimitiveValue(
+        element_name,
+        value_parser,
+        attribute,
+        required,
+        alias,
+        default,
+        omit_empty,
+        transform
+    )
 
 
 def user_object(element_name, cls, child_processors, required=True, alias=None, transform=None):
@@ -360,11 +450,21 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     See also :func:`declxml.dictionary`
     """
     converter = _user_object_converter(cls)
-    return _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform)
+    return _aggregate_processor_create(
+        element_name,
+        converter,
+        child_processors,
+        required,
+        alias,
+        transform
+    )
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
-_AggregateConverter = namedtuple('_AggregateConverter', ['from_dict', 'to_dict'])
+_AggregateConverter = namedtuple('_AggregateConverter', [
+    'from_dict',
+    'to_dict',
+])
 
 
 class _Aggregate(object):
@@ -551,7 +651,9 @@ class _Dictionary(object):
                 parsed_dict[child.alias] = child.parse_from_parent(element, state)
                 state.pop_location()
         elif self.required:
-            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_path))
+            state.raise_error(
+                MissingValue, 'Missing required aggregate "{}"'.format(self.element_path)
+            )
 
         return parsed_dict
 
@@ -579,7 +681,9 @@ class _Dictionary(object):
         Serializes the value to a new element and returns the element.
         """
         if not value and self.required:
-            state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(self.element_path))
+            state.raise_error(
+                MissingValue, 'Missing required aggregate "{}"'.format(self.element_path)
+            )
 
         start_element, end_element = _element_path_create_new(self.element_path)
         self._serialize(end_element, value, state)
@@ -609,7 +713,17 @@ class _Dictionary(object):
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
-    def __init__(self, element_path, parser_func, attribute=None, required=True, alias=None, default=None, omit_empty=False, transform=None):
+    def __init__(
+        self,
+        element_path,
+        parser_func,
+        attribute=None,
+        required=True,
+        alias=None,
+        default=None,
+        omit_empty=False,
+        transform=None
+    ):
         """
         :param element_path: Path to XML element containing the value.
         :param parser_func: Function to parse the raw XML value. Should take a string and return
@@ -617,8 +731,8 @@ class _PrimitiveValue(object):
         :param required: Indicates whether the value is required.
         :param alias: Alternative name to give to the value. If not specified, element_path is used.
         :param default: Default value. Only valid if required is False.
-        :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if required is
-            False.
+        :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if
+            required is False.
         :param transform: A ValueTransform object.
         """
         self.element_path = element_path
@@ -657,7 +771,9 @@ class _PrimitiveValue(object):
             else:
                 parsed_value = self._parser_func(element.text, state)
         elif self.required:
-            state.raise_error(MissingValue, 'Missing required element "{}"'.format(self.element_path))
+            state.raise_error(
+                MissingValue, 'Missing required element "{}"'.format(self.element_path)
+            )
 
         return _transform_value_from_xml(self._transform, parsed_value, state)
 
@@ -711,8 +827,11 @@ class _PrimitiveValue(object):
         if attribute_value:
             parsed_value = self._parser_func(attribute_value, state)
         elif self.required:
-            state.raise_error(MissingValue, 'Missing required attribute "{}" on element "{}"'.format(
-                self._attribute, element.tag))
+            state.raise_error(
+                MissingValue, 'Missing required attribute "{}" on element "{}"'.format(
+                    self._attribute, element.tag
+                )
+            )
 
         return parsed_value
 
@@ -761,15 +880,19 @@ class _ProcessorState(object):
         self._locations.append(location)
 
     def raise_error(self, exception_type, message):
-        """Raises the given exception type and includes the current state information with the error message"""
+        """
+        Raises the given exception type and includes the current state information with the error
+        message
+        """
         error_message = '{} at {}'.format(message, self.__repr__())
         raise exception_type(error_message)
 
     def __repr__(self):
-        # Exclude the any locations specified with a dot which just means the "current location" from
-        # the path string.
-        location_strings = (_ProcessorState._location_to_string(location) for location in self._locations if
-                            location.element != '.')
+        # Exclude the any locations specified with a dot which just means the "current location"
+        # from the path string.
+        location_strings = (_ProcessorState._location_to_string(location)
+                            for location in self._locations
+                            if location.element != '.')
         return '/'.join(location_strings)
 
     @staticmethod
@@ -816,7 +939,14 @@ class _TransformedAggregate(object):
         self._processor.serialize_on_parent(parent, xml_value, state)
 
 
-def _aggregate_processor_create(element_name, converter, child_processors, required, alias, transform):
+def _aggregate_processor_create(
+    element_name,
+    converter,
+    child_processors,
+    required,
+    alias,
+    transform
+):
     """Creates a new aggregate processor"""
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
     return _processor_wrap_if_transform(processor, transform)
@@ -1013,7 +1143,7 @@ def _xml_namespace_strip(root):
     for element in root.iter():
         if '}' in element.tag:
             element.tag = element.tag.split('}')[1]
-        else: # pragma: no cover
+        else:  # pragma: no cover
             # We should never get here. If there is a namespace, then the namespace should be
             # included in all elements.
             pass

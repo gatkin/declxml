@@ -15,7 +15,7 @@ def test_serialize_none_namedtuple_issue_7():
         'name',
         'age',
     ])
-    
+
     processor = xml.dictionary('race-result', [
         xml.floating_point('time'),
         xml.named_tuple('athlete', Athlete, [
@@ -26,7 +26,7 @@ def test_serialize_none_namedtuple_issue_7():
 
     value = {
         'time': 87.5,
-        'athlete': None, 
+        'athlete': None,
     }
 
     expected_xml = strip_xml("""
@@ -46,12 +46,11 @@ def test_serialize_none_object_issue_7():
 
         def __init__(self):
             self.name = ''
-            self.age = 0 
-
+            self.age = 0
 
     processor = xml.dictionary('race-result', [
         xml.floating_point('time'),
-        xml.user_object('athete', Athlete, [
+        xml.user_object('athlete', Athlete, [
             xml.string('name'),
             xml.integer('age'),
         ], required=False)

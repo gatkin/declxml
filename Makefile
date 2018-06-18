@@ -1,5 +1,6 @@
 check:
 	flake8 --max-complexity 10 declxml.py
+	flake8 --max-complexity 10 tests/
 
 coverage:
 	coverage run tests/run_tests.py

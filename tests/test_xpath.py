@@ -342,7 +342,9 @@ class TestSlashPrimitiveInNestedArray(_ProcessorTestCase):
 
     processor = xml.dictionary('dataset', [
         xml.string('source'),
-        xml.array(xml.integer('person/demographics/age', alias='age'), nested='people', alias='ages')
+        xml.array(
+            xml.integer('person/demographics/age', alias='age'), nested='people', alias='ages'
+        )
     ])
 
 
@@ -372,4 +374,3 @@ class TestSlashPrimitiveInNestedRootArray(_ProcessorTestCase):
     value = [23, 27, 31]
 
     processor = xml.array(xml.integer('person/demographics/age', alias='age'), nested='people')
-

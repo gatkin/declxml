@@ -56,11 +56,6 @@ import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
 
-# Prevent flake8 from flagging an undefined name with Python 3.
-if sys.version_info[0] == 3:
-    unicode = str
-
-
 class XmlError(Exception):
     """Base error class representing errors processing XML data"""
     pass
@@ -270,13 +265,13 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, transform=N
 
 
 def boolean(
-    element_name,
-    attribute=None,
-    required=True,
-    alias=None,
-    default=False,
-    omit_empty=False,
-    transform=None
+        element_name,
+        attribute=None,
+        required=True,
+        alias=None,
+        default=False,
+        omit_empty=False,
+        transform=None
 ):
     """
     Creates a processor for boolean values.
@@ -331,13 +326,13 @@ def dictionary(element_name, children, required=True, alias=None, transform=None
 
 
 def floating_point(
-    element_name,
-    attribute=None,
-    required=True,
-    alias=None,
-    default=0.0,
-    omit_empty=False,
-    transform=None
+        element_name,
+        attribute=None,
+        required=True,
+        alias=None,
+        default=0.0,
+        omit_empty=False,
+        transform=None
 ):
     """
     Creates a processor for floating point values.
@@ -358,13 +353,13 @@ def floating_point(
 
 
 def integer(
-    element_name,
-    attribute=None,
-    required=True,
-    alias=None,
-    default=0,
-    omit_empty=False,
-    transform=None
+        element_name,
+        attribute=None,
+        required=True,
+        alias=None,
+        default=0,
+        omit_empty=False,
+        transform=None
 ):
     """
     Creates a processor for integer values.
@@ -385,12 +380,12 @@ def integer(
 
 
 def named_tuple(
-    element_name,
-    tuple_type,
-    child_processors,
-    required=True,
-    alias=None,
-    transform=None
+        element_name,
+        tuple_type,
+        child_processors,
+        required=True,
+        alias=None,
+        transform=None
 ):
     """
     Creates a processor for namedtuple values.
@@ -400,25 +395,19 @@ def named_tuple(
     See also :func:`declxml.dictionary`
     """
     converter = _named_tuple_converter(tuple_type)
-    return _aggregate_processor_create(
-        element_name,
-        converter,
-        child_processors,
-        required,
-        alias,
-        transform
-    )
+    processor = _Aggregate(element_name, converter, child_processors, required, alias)
+    return _processor_wrap_if_transform(processor, transform)
 
 
 def string(
-    element_name,
-    attribute=None,
-    required=True,
-    alias=None,
-    default='',
-    omit_empty=False,
-    strip_whitespace=True,
-    transform=None
+        element_name,
+        attribute=None,
+        required=True,
+        alias=None,
+        default='',
+        omit_empty=False,
+        strip_whitespace=True,
+        transform=None
 ):
     """
     Creates a processor for string values.
@@ -450,14 +439,8 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     See also :func:`declxml.dictionary`
     """
     converter = _user_object_converter(cls)
-    return _aggregate_processor_create(
-        element_name,
-        converter,
-        child_processors,
-        required,
-        alias,
-        transform
-    )
+    processor = _Aggregate(element_name, converter, child_processors, required, alias)
+    return _processor_wrap_if_transform(processor, transform)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
@@ -714,15 +697,15 @@ class _PrimitiveValue(object):
     """An XML processor for processing primitive values"""
 
     def __init__(
-        self,
-        element_path,
-        parser_func,
-        attribute=None,
-        required=True,
-        alias=None,
-        default=None,
-        omit_empty=False,
-        transform=None
+            self,
+            element_path,
+            parser_func,
+            attribute=None,
+            required=True,
+            alias=None,
+            default=None,
+            omit_empty=False,
+            transform=None
     ):
         """
         :param element_path: Path to XML element containing the value.
@@ -919,37 +902,29 @@ class _TransformedAggregate(object):
         self._transform = transform
 
     def parse_at_element(self, element, state):
+        """Parses the given element"""
         xml_value = self._processor.parse_at_element(element, state)
         return _transform_value_from_xml(self._transform, xml_value, state)
 
     def parse_at_root(self, root, state):
+        """Parses the given element as the root of the document"""
         xml_value = self._processor.parse_at_root(root, state)
         return _transform_value_from_xml(self._transform, xml_value, state)
 
     def parse_from_parent(self, parent, state):
+        """Parses the element from the given parent element"""
         xml_value = self._processor.parse_from_parent(parent, state)
         return _transform_value_from_xml(self._transform, xml_value, state)
 
     def serialize(self, value, state):
+        """Serializes the value and returns it"""
         xml_value = _transform_value_to_xml(self._transform, value, state)
         return self._processor.serialize(xml_value, state)
 
     def serialize_on_parent(self, parent, value, state):
+        """Serializes the value directory on the parent"""
         xml_value = _transform_value_to_xml(self._transform, value, state)
         self._processor.serialize_on_parent(parent, xml_value, state)
-
-
-def _aggregate_processor_create(
-    element_name,
-    converter,
-    child_processors,
-    required,
-    alias,
-    transform
-):
-    """Creates a new aggregate processor"""
-    processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
 
 
 def _element_append_path(start_element, element_names):
@@ -1034,8 +1009,8 @@ def _named_tuple_converter(tuple_type):
     def _to_dict(value):
         if value:
             return value._asdict()
-        else:
-            return {}
+
+        return {}
 
     converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
     return converter
@@ -1072,8 +1047,8 @@ def _processor_wrap_if_transform(processor, transform):
     """Creates a transformed processor if a valid transform is provided"""
     if transform:
         return _TransformedAggregate(processor, transform)
-    else:
-        return processor
+
+    return processor
 
 
 def _string_parser(strip_whitespace):
@@ -1128,8 +1103,8 @@ def _user_object_converter(cls):
     def _to_dict(value):
         if value:
             return value.__dict__
-        else:
-            return {}
+
+        return {}
 
     converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
     return converter

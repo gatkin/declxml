@@ -15,5 +15,8 @@ coverage-report:
 	coverage run tests/run_tests.py
 	coverage report
 
+pylint:
+	pylint --rcfile .pylintrc declxml.py
+
 test:
 	pytest -v

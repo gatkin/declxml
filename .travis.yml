@@ -10,7 +10,7 @@ python:
 install:
 - pip install -r requirements.txt
 script:
-- coverage run tests/run_tests.py
+- make prcheck
 after_success:
 - codecov
 deploy:

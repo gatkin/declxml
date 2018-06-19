@@ -56,6 +56,9 @@ import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
 
+_PY2 = sys.version_info[0] == 2
+
+
 class XmlError(Exception):
     """Base error class representing errors processing XML data"""
     pass
@@ -153,7 +156,7 @@ def parse_from_string(root_processor, xml_string):
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
-    if sys.version_info[0] == 2 and isinstance(xml_string, unicode):
+    if _PY2 and isinstance(xml_string, unicode):
         xml_string = xml_string.encode('utf-8')
 
     root = ET.fromstring(xml_string)
@@ -831,7 +834,7 @@ class _PrimitiveValue(object):
             else:
                 serialized_value = str(self._default)
         else:
-            if sys.version_info[0] == 2:
+            if _PY2:
                 serialized_value = unicode(xml_value)
             else:
                 serialized_value = str(xml_value)

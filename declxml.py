@@ -58,6 +58,10 @@ import xml.etree.ElementTree as ET
 
 _PY2 = sys.version_info[0] == 2
 
+# Must define unicode so flake8 does not flag an undefined name on Python 3.
+if not _PY2:
+    unicode = str  # pylint: disable=invalid-name, redefined-builtin
+
 
 class XmlError(Exception):
     """Base error class representing errors processing XML data"""

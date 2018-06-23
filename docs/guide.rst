@@ -1,15 +1,20 @@
 Guide
 =====
-The basic building blocks used in the declxml library are *processor* objects. Processors are used to define the structure of an
-XML document. There are two types of processors:
+The basic building blocks used in the declxml library are *processor* objects.
+Processors are used to define the structure of an XML document. There are two
+types of processors:
 
-* **Primitive** processors - Used for processing simple, primitive values like booleans, integers, floats, and strings.
-* **Aggregate** processors - Used for processing aggregate values such as dictionaries, arrays, and objects. Aggregate processors are themselves composed of other processors.
+* **Primitive** processors - Used for processing simple, primitive values like
+    booleans, integers, floats, and strings.
+* **Aggregate** processors - Used for processing aggregate values such as
+    dictionaries, arrays, and objects. Aggregate processors are themselves
+    composed of other processors.
 
 
-Primitive processors are created using the processor factory function that corresponds to the type of value to process. The
-factory functions offer several options for configuring a processor. The following creates a basic processor for integer values
-contained within an "id" element:
+Primitive processors are created using the processor factory function that
+corresponds to the type of value to process. The factory functions offer
+several options for configuring a processor. The following creates a basic
+processor for integer values contained within an "id" element:
 
 .. sourcecode:: py
 
@@ -18,8 +23,10 @@ contained within an "id" element:
     >>> xml.integer('id')
     <declxml._PrimitiveValue object at ...>
 
-Aggregate processors are created by specifying a list of child processors that compose the aggregate. The following creates a processor
-for dictionary values contained within a "user" element that itself contains a "user-name" and an "id" sub-element:
+Aggregate processors are created by specifying a list of child processors that
+compose the aggregate. The following creates a processor for dictionary values
+contained within a "user" element that itself contains a "user-name" and an
+"id" sub-element:
 
 .. sourcecode:: py
 
@@ -34,7 +41,8 @@ for dictionary values contained within a "user" element that itself contains a "
 
 Parsing and Serialization
 -------------------------
-Processors define the structure of an XML document and are used to both parse and serialize data to and from XML.
+Processors define the structure of an XML document and are used to both parse
+and serialize data to and from XML.
 
 .. sourcecode:: py
 
@@ -91,7 +99,11 @@ Processors may be configured to read and write values from attributes.
     {'birth-month': 'July', 'birth-year': 1907, 'name': 'Robert A. Heinlein'}
 
 
-    >>> author = {'name': 'Isaac Asimov', 'birth-year': 1920, 'birth-month': 'January'}
+    >>> author = {
+    ...     'name': 'Isaac Asimov',
+    ...     'birth-year': 1920,
+    ...     'birth-month': 'January'
+    ... }
     >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
     <?xml version="1.0" encoding="utf-8"?>
     <author>
@@ -101,7 +113,8 @@ Processors may be configured to read and write values from attributes.
 
 Validation
 ----------
-Processors can perform basic validation such as ensuring required elements are present.
+Processors can perform basic validation such as ensuring required elements are
+present.
 
 .. sourcecode:: py
 
@@ -160,7 +173,7 @@ Processors may specify optional and default values.
     >>> author_processor = xml.dictionary('author', [
     ...     xml.string('name'),
     ...     xml.integer('birth-year'),
-    ...     xml.string('genre', required=False, default='Science Fiction')
+    ...     xml.string('genre', required=False, default='Sci-Fi')
     ... ])
 
     >>> author_xml = """
@@ -171,7 +184,7 @@ Processors may specify optional and default values.
     ... """
 
     >>> pprint(xml.parse_from_string(author_processor, author_xml))
-    {'birth-year': 1907, 'genre': 'Science Fiction', 'name': 'Robert A. Heinlein'}
+    {'birth-year': 1907, 'genre': 'Sci-Fi', 'name': 'Robert A. Heinlein'}
 
 
     >>> author_xml = """
@@ -188,8 +201,8 @@ Processors may specify optional and default values.
 
 Aliases
 -------
-By default, processors use the element name as the name of the value in Python. An alias can be provided to use a different name for
-the value in Python.
+By default, processors use the element name as the name of the value in Python.
+An alias can be provided to use a different name for the value in Python.
 
 .. sourcecode:: python
 
@@ -222,7 +235,8 @@ the value in Python.
 
 Omitting Empty Values
 ---------------------
-Processors can be configured to omit missing or falsey values when serializing. Only optional values may be omitted.
+Processors can be configured to omit missing or falsey values when serializing.
+Only optional values may be omitted.
 
 .. sourcecode:: python
 
@@ -254,10 +268,12 @@ Processors can be configured to omit missing or falsey values when serializing. 
 
 Arrays
 ------
-Processors can be defined for array values. When creating an array processor, a processor must be specified for processing
-the array's items. An array is treated as optional if its item processor is configured as optional.
+Processors can be defined for array values. When creating an array processor, a
+processor must be specified for processing the array's items. An array is
+treated as optional if its item processor is configured as optional.
 
-An array can be either *embedded* or *nested*. An embedded array is embedded directly within its parent as in the following:
+An array can be either *embedded* or *nested*. An embedded array is embedded
+directly within its parent as in the following:
 
 .. sourcecode:: py
 
@@ -380,8 +396,9 @@ Processors can be composed to define more complex document structures.
 
 User-Defined Classes
 --------------------
-Processors can also be created for parsing and serializing XML data to and from user-defined classes.
-Simply provide the class to the processor factory function.
+Processors can also be created for parsing and serializing XML data to and from
+user-defined classes. Simply provide the class to the processor factory
+function.
 
 .. sourcecode:: py
 
@@ -397,7 +414,7 @@ Simply provide the class to the processor factory function.
     ...        return 'Author(name=\'{}\', birth_year={})'.format(
     ...            self.name, self.birth_year)
 
-    
+
     >>> author_processor = xml.user_object('author', Author, [
     ...     xml.string('name'),
     ...     xml.integer('birth-year', alias='birth_year')
@@ -424,9 +441,10 @@ Simply provide the class to the processor factory function.
       <birth-year>1920</birth-year>
     </author>
 
-Note that the class provided to the `user_object` factory function must have a zero-argument constructor.
-It is also possible to pass any other callable object that takes zero parameters and returns an object
-instance to which parsed values will be read into.
+Note that the class provided to the `user_object` factory function must have a
+zero-argument constructor. It is also possible to pass any other callable
+object that takes zero parameters and returns an object instance to which
+parsed values will be read into.
 
 
 Named Tuples
@@ -441,7 +459,7 @@ Processors may also be created for named tuple values.
 
     >>> Author = namedtuple('Author', ['name', 'birth_year'])
 
-    
+
     >>> author_processor = xml.named_tuple('author', Author, [
     ...     xml.string('name'),
     ...     xml.integer('birth-year', alias='birth_year')

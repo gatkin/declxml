@@ -8,13 +8,19 @@ coverage:
 	# A few lines only run depending on whether it is Python 2 or Python 3
 	coverage report --fail-under=99
 
+docbuild:
+	$(MAKE) -C docs html
+
+doccheck: docbuild
+	doc8 docs/*.rst
+	
 html-coverage:
 	coverage run tests/run_tests.py
 	coverage html
 	rm -rf /tmp/htmlcov && mv htmlcov /tmp/
 	open /tmp/htmlcov/index.html
 
-prcheck: check pylint coverage 
+prcheck: check pylint doccheck coverage 
 
 pylint:
 	pylint --rcfile .pylintrc declxml.py

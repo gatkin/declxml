@@ -1,4 +1,4 @@
-"$($env:PYTHON)/python.exe -m pytest --junixtml=TestResults.xml"
+python -m pytest --junixtml=TestResults.xml
 
 $client = New-Object "System.Net.WebClient"
 $client.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path TestResults.xml))

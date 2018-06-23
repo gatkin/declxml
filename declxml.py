@@ -27,9 +27,9 @@ dictionaries, arrays, and user objects.
 .. autofunction:: declxml.named_tuple
 .. autofunction:: declxml.user_object
 
-Value Transformers
+Hooks
 ------------------
-.. autoclass:: declxml.ValueTransform
+.. autoclass:: declxml.Hooks
 
 Parsing
 ----------
@@ -79,37 +79,31 @@ class MissingValue(XmlError):
     """Represents errors due to missing required values."""
 
 
-class ValueTransform(object):
+class Hooks(object):
     """
-    Contains functions used to transform values when parsing and serializing.
+    Contains functions to be invoked during parsing and serialization.
 
-    A ValueTransform object contains two functions: from_xml and to_xml. Both of these functions
-    receive one argument and should return one value.
+    A Hooks object contains two functions: after_parse and before_serialize. Both of these
+    functions receive one argument and should return one value.
 
-    The from_xml function will receive the value parsed by the processor from the XML data during
-    parsing. The from_xml function can perform any arbitrary transformation on the parsed value.
-    The returned transformed value will be used as the processor's parsing result.
+    The after_parse function will receive the value parsed by the processor from the XML data
+    during parsing. This function must return a value to be used by the processor as the parse
+    result.
 
-    Similarly, the to_xml function will receive the value to be serialized to XML by the processor
-    during serialization. The to_xml function should transform the value into a shape that can be
-    serialized by the processor. The transformed value returned by the to_xml function will be
-    provided to the processor to serialize into XML.
+    Similarly, the before_serialize function will receive the value to be serialized to XML by the
+    processor during serialization. This function must return a value to be used by the processor
+    to serialize to XML.
 
-    The from_xml and to_xml functions should be inverse operations of each other. The from_xml
-    function transforms values from the raw XML format into a format the caller wants to use, and
-    the to_xml function performs the inverse transform from a format used by the caller into the
-    raw XML format that can be serialized directly.
+    If a processor is only ever going to be used for parsing, then the before_serialize function
+    may be omitted. Likewise, if a processor is only ever going to be used for serializing, then
+    the after_parse function may be omitted.
 
-    If a processor is only ever going to be used for parsing, then the to_xml function may be
-    omitted. Likewise, if a processor is only ever going to be used for serializing, then the
-    from_xml function may be omitted.
-
-    >>> transform = ValueTransform(
-    ...     from_xml=lambda x: x.upper(),
-    ...     to_xml=lambda x: x.lower()
+    >>> hooks = Hooks(
+    ...     after_parse=lambda x: x.upper(),
+    ...     before_serialize=lambda x: x.lower()
     ... )
     >>> processor = dictionary('data',[
-    ...     string('value', transform=transform)
+    ...     string('value', hooks=hooks)
     ... ])
     >>> xml_data = '<data><value>hello</value></data>'
     >>> parse_from_string(processor, xml_data)
@@ -118,15 +112,15 @@ class ValueTransform(object):
     '<data><value>hello</value></data>'
     """
 
-    def __init__(self, from_xml=None, to_xml=None):
+    def __init__(self, after_parse=None, before_serialize=None):
         """
-        Create a new ValueTransform.
+        Create a new Hooks object.
 
-        :param from_xml: A function to transform values from XML values.
-        :param to_xml: A function to transform values to XML values.
+        :param after_parse: Function to be invoked after a value has be parsed.
+        :param before_serialize: Function to be invoked before a value is serialized.
         """
-        self.from_xml = from_xml
-        self.to_xml = to_xml
+        self.after_parse = after_parse
+        self.before_serialize = before_serialize
 
 
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
@@ -216,7 +210,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False, transform=None):
+def array(item_processor, alias=None, nested=None, omit_empty=False, hooks=None):
     """
     Create an array processor that can be used to parse and serialize array data.
 
@@ -260,12 +254,12 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, transform=N
         for an array of arrays, any empty arrays in the outer array will always be
         serialized to prevent information about the original array from being lost
         when serializing.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
     processor = _Array(item_processor, alias, nested, omit_empty)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def boolean(
@@ -275,7 +269,7 @@ def boolean(
         alias=None,
         default=False,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for boolean values.
@@ -294,7 +288,7 @@ def boolean(
     :param omit_empty: If True, then Falsey values will be omitted when serializing to XML. Note
         that Falsey values are never omitted when they are elements of an array. Falsey values can
         be omitted only when they are standalone elements.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
@@ -306,11 +300,11 @@ def boolean(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
-def dictionary(element_name, children, required=True, alias=None, transform=None):
+def dictionary(element_name, children, required=True, alias=None, hooks=None):
     """
     Create a processor for dictionary values.
 
@@ -321,12 +315,12 @@ def dictionary(element_name, children, required=True, alias=None, transform=None
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
     processor = _Dictionary(element_name, children, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def floating_point(
@@ -336,7 +330,7 @@ def floating_point(
         alias=None,
         default=0.0,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for floating point values.
@@ -352,7 +346,7 @@ def floating_point(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
@@ -363,7 +357,7 @@ def integer(
         alias=None,
         default=0,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for integer values.
@@ -379,7 +373,7 @@ def integer(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
@@ -389,7 +383,7 @@ def named_tuple(
         child_processors,
         required=True,
         alias=None,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for namedtuple values.
@@ -400,7 +394,7 @@ def named_tuple(
     """
     converter = _named_tuple_converter(tuple_type)
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def string(
@@ -411,7 +405,7 @@ def string(
         default='',
         omit_empty=False,
         strip_whitespace=True,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for string values.
@@ -430,11 +424,11 @@ def string(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
-def user_object(element_name, cls, child_processors, required=True, alias=None, transform=None):
+def user_object(element_name, cls, child_processors, required=True, alias=None, hooks=None):
     """
     Create a processor for user objects.
 
@@ -444,7 +438,7 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     """
     converter = _user_object_converter(cls)
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
@@ -690,6 +684,42 @@ class _Dictionary(object):
             state.pop_location()
 
 
+class _HookedAggregate(object):
+    """A processor which decorates a processor and applies hooks to all values processed."""
+
+    def __init__(self, processor, hooks):
+        self.element_path = processor.element_path
+        self.required = processor.required
+        self.alias = processor.alias
+        self._processor = processor
+        self._hooks = hooks
+
+    def parse_at_element(self, element, state):
+        """Parse the given element."""
+        xml_value = self._processor.parse_at_element(element, state)
+        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+
+    def parse_at_root(self, root, state):
+        """Parse the given element as the root of the document."""
+        xml_value = self._processor.parse_at_root(root, state)
+        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+
+    def parse_from_parent(self, parent, state):
+        """Parse the element from the given parent element."""
+        xml_value = self._processor.parse_from_parent(parent, state)
+        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+
+    def serialize(self, value, state):
+        """Serialize the value and returns it."""
+        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
+        return self._processor.serialize(xml_value, state)
+
+    def serialize_on_parent(self, parent, value, state):
+        """Serialize the value directory on the parent."""
+        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
+        self._processor.serialize_on_parent(parent, xml_value, state)
+
+
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values."""
 
@@ -702,7 +732,7 @@ class _PrimitiveValue(object):
             alias=None,
             default=None,
             omit_empty=False,
-            transform=None
+            hooks=None
     ):
         """
         Create a new processor for primitive values.
@@ -715,14 +745,14 @@ class _PrimitiveValue(object):
         :param default: Default value. Only valid if required is False.
         :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if
             required is False.
-        :param transform: A ValueTransform object.
+        :param hooks: A Hooks object.
         """
         self.element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
         self._default = default
-        self._transform = transform
+        self._hooks = hooks
 
         if alias:
             self.alias = alias
@@ -757,7 +787,7 @@ class _PrimitiveValue(object):
                 MissingValue, 'Missing required element "{}"'.format(self.element_path)
             )
 
-        return _transform_value_from_xml(self._transform, parsed_value, state)
+        return _hooks_apply_after_parse(self._hooks, parsed_value, state)
 
     def parse_from_parent(self, parent, state):
         """Parse the primitive value under the parent XML element."""
@@ -820,7 +850,7 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value, state):
         """Serialize the value to the element."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
+        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
 
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
@@ -883,42 +913,6 @@ class _ProcessorState(object):
             location_str = location.element
 
         return location_str
-
-
-class _TransformedAggregate(object):
-    """A processor which decorates a processor and applies a transform to all values processed."""
-
-    def __init__(self, processor, transform):
-        self.element_path = processor.element_path
-        self.required = processor.required
-        self.alias = processor.alias
-        self._processor = processor
-        self._transform = transform
-
-    def parse_at_element(self, element, state):
-        """Parse the given element."""
-        xml_value = self._processor.parse_at_element(element, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def parse_at_root(self, root, state):
-        """Parse the given element as the root of the document."""
-        xml_value = self._processor.parse_at_root(root, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def parse_from_parent(self, parent, state):
-        """Parse the element from the given parent element."""
-        xml_value = self._processor.parse_from_parent(parent, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def serialize(self, value, state):
-        """Serialize the value and returns it."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
-        return self._processor.serialize(xml_value, state)
-
-    def serialize_on_parent(self, parent, value, state):
-        """Serialize the value directory on the parent."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
-        self._processor.serialize_on_parent(parent, xml_value, state)
 
 
 def _element_append_path(start_element, element_names):
@@ -995,6 +989,32 @@ def _element_path_create_new(element_path):
     return (start_element, end_element)
 
 
+def _hooks_apply_after_parse(hooks, value, state):
+    """Apply the after parse hook."""
+    if not hooks:
+        return value
+
+    if not hooks.after_parse:
+        state.raise_error(XmlError,
+                          'No after_parse function provided in hooks. Cannot perform parsing.')
+
+    return hooks.after_parse(value)
+
+
+def _hooks_apply_before_serialize(hooks, value, state):
+    """Apply the before serialize hook."""
+    if not hooks:
+        return value
+
+    if not hooks.before_serialize:
+        state.raise_error(
+            XmlError,
+            'No before_serialize function provided in hooks. Cannot perform serialization.'
+        )
+
+    return hooks.before_serialize(value)
+
+
 def _is_valid_root_processor(processor):
     """Return True if the given XML processor can be used as a root processor."""
     return hasattr(processor, 'parse_at_root')
@@ -1042,10 +1062,10 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _processor_wrap_if_transform(processor, transform):
-    """Create a transformed processor if a valid transform is provided."""
-    if transform:
-        return _TransformedAggregate(processor, transform)
+def _processor_wrap_if_hooks(processor, hooks):
+    """Create a hooked processor if a valid hooks object is provided."""
+    if hooks:
+        return _HookedAggregate(processor, hooks)
 
     return processor
 
@@ -1063,30 +1083,6 @@ def _string_parser(strip_whitespace):
         return value
 
     return _parse_string_value
-
-
-def _transform_value_from_xml(transform, value, state):
-    """Apply the transform to the raw XML value."""
-    if not transform:
-        return value
-
-    if not transform.from_xml:
-        state.raise_error(XmlError,
-                          'No from_xml function provided in transform. Cannot perform parsing.')
-
-    return transform.from_xml(value)
-
-
-def _transform_value_to_xml(transform, value, state):
-    """Apply the transform to the value."""
-    if not transform:
-        return value
-
-    if not transform.to_xml:
-        state.raise_error(XmlError,
-                          'No to_xml function provided in transform. Cannot perform serialization.')
-
-    return transform.to_xml(value)
 
 
 def _user_object_converter(cls):

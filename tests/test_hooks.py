@@ -1,4 +1,4 @@
-"""Tests for performing arbitrary transformations of XML values during processing"""
+"""Tests for providing hooks during the parsing and serialization"""
 from collections import OrderedDict, namedtuple
 
 import pytest
@@ -11,7 +11,7 @@ class TestArrayValueTransform(object):
     """Transform array values"""
 
     @staticmethod
-    def _from_xml(array_value):
+    def _after_parse(array_value):
         dict_value = OrderedDict()
         for item in array_value:
             dict_value[item['key']] = item['value']
@@ -19,7 +19,7 @@ class TestArrayValueTransform(object):
         return dict_value
 
     @staticmethod
-    def _to_xml(dict_value):
+    def _before_serialize(dict_value):
         return [{'key': k, 'value': v} for k, v in dict_value.items()]
 
     def test_array_of_arrays(self):
@@ -59,7 +59,7 @@ class TestArrayValueTransform(object):
         processor = xml.dictionary('data', [
             xml.string('name'),
             xml.array(
-                xml.array(self._item_processor, nested='values', transform=self._transform),
+                xml.array(self._item_processor, nested='values', hooks=self._hooks),
             )
         ])
 
@@ -87,7 +87,7 @@ class TestArrayValueTransform(object):
 
         processor = xml.dictionary('data', [
             xml.string('name'),
-            xml.array(self._item_processor, alias='values', transform=self._transform)
+            xml.array(self._item_processor, alias='values', hooks=self._hooks)
         ])
 
         _transform_test_case_run(processor, value, xml_string)
@@ -108,7 +108,7 @@ class TestArrayValueTransform(object):
             ('c', 37),
         ])
 
-        processor = xml.array(self._item_processor, nested='data', transform=self._transform)
+        processor = xml.array(self._item_processor, nested='data', hooks=self._hooks)
 
         _transform_test_case_run(processor, value, xml_string)
 
@@ -120,10 +120,10 @@ class TestArrayValueTransform(object):
             ])
 
     @property
-    def _transform(self):
-        return xml.ValueTransform(
-            from_xml=self._from_xml,
-            to_xml=self._to_xml
+    def _hooks(self):
+        return xml.Hooks(
+            after_parse=self._after_parse,
+            before_serialize=self._before_serialize
         )
 
 
@@ -131,7 +131,7 @@ class TestDictionaryValueTransform(object):
     """Transform dictionary values"""
 
     @staticmethod
-    def _from_xml(dict_value):
+    def _after_parse(dict_value):
         list_value = []
         for key, value in dict_value.items():
             list_value.append((key, value))
@@ -139,7 +139,7 @@ class TestDictionaryValueTransform(object):
         return sorted(list_value)
 
     @staticmethod
-    def _to_xml(list_value):
+    def _before_serialize(list_value):
         dict_value = {}
         for key, value in list_value:
             dict_value[key] = value
@@ -231,16 +231,16 @@ class TestDictionaryValueTransform(object):
 
     @property
     def _dict_processor(self):
-        transform = xml.ValueTransform(
-            from_xml=self._from_xml,
-            to_xml=self._to_xml
+        hooks = xml.Hooks(
+            after_parse=self._after_parse,
+            before_serialize=self._before_serialize
         )
 
         return xml.dictionary('data', [
             xml.integer('a'),
             xml.integer('b'),
             xml.integer('c'),
-        ], transform=transform)
+        ], hooks=hooks)
 
 
 class TestUserObjectValueTransform(object):
@@ -256,11 +256,11 @@ class TestUserObjectValueTransform(object):
             return other.name == self.name and other.age == self.age
 
     @staticmethod
-    def _from_xml(object_value):
+    def _after_parse(object_value):
         return object_value.name, object_value.age
 
     @staticmethod
-    def _to_xml(tuple_value):
+    def _before_serialize(tuple_value):
         object_value = TestUserObjectValueTransform._Person()
         object_value.name = tuple_value[0]
         object_value.age = tuple_value[1]
@@ -328,19 +328,19 @@ class TestUserObjectValueTransform(object):
 
     @property
     def _user_object_processor(self):
-        transform = xml.ValueTransform(
-            from_xml=self._from_xml,
-            to_xml=self._to_xml,
+        hooks = xml.Hooks(
+            after_parse=self._after_parse,
+            before_serialize=self._before_serialize,
         )
 
         return xml.user_object('person', self._Person, [
             xml.string('name'),
             xml.integer('age'),
-        ], transform=transform)
+        ], hooks=hooks)
 
 
 def test_aggregate_transform_missing_from_xml():
-    """Parse with a missing aggregate transform"""
+    """Parse with a missing aggregate hooks"""
     xml_string = strip_xml("""
     <data>
         <value key="a">1</value>
@@ -351,14 +351,14 @@ def test_aggregate_transform_missing_from_xml():
     processor = xml.array(xml.dictionary('value', [
         xml.string('.', attribute='key'),
         xml.integer('.', alias='value'),
-    ]), transform=xml.ValueTransform())
+    ]), hooks=xml.Hooks())
 
     with pytest.raises(xml.XmlError):
         xml.parse_from_string(processor, xml_string)
 
 
 def test_aggregate_transform_missing_to_xml():
-    """Serialize with a missing aggregate transform"""
+    """Serialize with a missing aggregate hooks"""
     value = {
         'a': 1,
         'b': 2,
@@ -367,7 +367,7 @@ def test_aggregate_transform_missing_to_xml():
     processor = xml.array(xml.dictionary('value', [
         xml.string('.', attribute='key'),
         xml.integer('.', alias='value'),
-    ]), transform=xml.ValueTransform())
+    ]), hooks=xml.Hooks())
 
     with pytest.raises(xml.XmlError):
         xml.serialize_to_string(processor, value)
@@ -385,22 +385,22 @@ def test_boolean_transform():
         'value': 'It is true'
     }
 
-    def _from_xml(x):
+    def _after_parse(x):
         if x:
             return 'It is true'
         else:
             return 'It is false'
 
-    def _to_xml(x):
+    def _before_serialize(x):
         if x == 'It is true':
             return True
         else:
             return False
 
-    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
 
     processor = xml.dictionary('data', [
-        xml.boolean('value', transform=transform)
+        xml.boolean('value', hooks=hooks)
     ])
 
     _transform_test_case_run(processor, value, xml_string)
@@ -418,16 +418,16 @@ def test_floating_point_transform():
         'value': 26.2
     }
 
-    def _from_xml(x):
+    def _after_parse(x):
         return x * 2.0
 
-    def _to_xml(x):
+    def _before_serialize(x):
         return x / 2.0
 
-    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
 
     processor = xml.dictionary('data', [
-        xml.floating_point('value', transform=transform)
+        xml.floating_point('value', hooks=hooks)
     ])
 
     _transform_test_case_run(processor, value, xml_string)
@@ -445,16 +445,16 @@ def test_integer_transform():
         'value': 6
     }
 
-    def _from_xml(x):
+    def _after_parse(x):
         return int(x * 2)
 
-    def _to_xml(x):
+    def _before_serialize(x):
         return int(x / 2)
 
-    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
 
     processor = xml.dictionary('data', [
-        xml.integer('value', transform=transform)
+        xml.integer('value', hooks=hooks)
     ])
 
     _transform_test_case_run(processor, value, xml_string)
@@ -476,19 +476,19 @@ def test_named_tuple_transform():
         'age': 24,
     }
 
-    def _from_xml(tuple_value):
+    def _after_parse(tuple_value):
         return {
             'name': tuple_value.name,
             'age': tuple_value.age,
         }
 
-    def _to_xml(dict_value):
+    def _before_serialize(dict_value):
         return Person(name=dict_value['name'], age=dict_value['age'])
 
     processor = xml.named_tuple('person', Person, [
         xml.string('name'),
         xml.integer('age'),
-    ], transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml))
+    ], hooks=xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize))
 
     _transform_test_case_run(processor, value, xml_string)
 
@@ -509,14 +509,16 @@ def test_primitive_transform_array_element():
         32,
     ]
 
-    def _from_xml(x):
+    def _after_parse(x):
         return int(x * 2)
 
-    def _to_xml(x):
+    def _before_serialize(x):
         return int(x / 2)
 
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
+
     processor = xml.array(
-        xml.integer('value', transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)),
+        xml.integer('value', hooks=hooks),
         nested='data')
 
     _transform_test_case_run(processor, value, xml_string)
@@ -534,23 +536,23 @@ def test_primitive_transform_attribute():
         'value': 6,
     }
 
-    def _from_xml(x):
+    def _after_parse(x):
         return int(x * 2)
 
-    def _to_xml(x):
+    def _before_serialize(x):
         return int(x / 2)
 
-    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
 
     processor = xml.dictionary('data', [
-        xml.integer('element', attribute='value', transform=transform)
+        xml.integer('element', attribute='value', hooks=hooks)
     ])
 
     _transform_test_case_run(processor, value, xml_string)
 
 
 def test_primitive_transform_missing_from_xml():
-    """Parse with a missing from XML transform"""
+    """Parse with a missing from XML hooks"""
     xml_string = strip_xml("""
         <data>
             <value>3</value>
@@ -558,7 +560,7 @@ def test_primitive_transform_missing_from_xml():
     """)
 
     processor = xml.dictionary('data', [
-        xml.integer('value', transform=xml.ValueTransform())
+        xml.integer('value', hooks=xml.Hooks())
     ])
 
     with pytest.raises(xml.XmlError):
@@ -566,13 +568,13 @@ def test_primitive_transform_missing_from_xml():
 
 
 def test_primitive_transform_missing_to_xml():
-    """Serialize with a missing to XML transform"""
+    """Serialize with a missing to XML hooks"""
     value = {
         'value': 6,
     }
 
     processor = xml.dictionary('data', [
-        xml.integer('value', transform=xml.ValueTransform())
+        xml.integer('value', hooks=xml.Hooks())
     ])
 
     with pytest.raises(xml.XmlError):
@@ -591,16 +593,16 @@ def test_string_transform():
         'value': 'HELLO'
     }
 
-    def _from_xml(x):
+    def _after_parse(x):
         return x.upper()
 
-    def _to_xml(x):
+    def _before_serialize(x):
         return x.lower()
 
-    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+    hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
 
     processor = xml.dictionary('data', [
-        xml.string('value', transform=transform)
+        xml.string('value', hooks=hooks)
     ])
 
     _transform_test_case_run(processor, value, xml_string)

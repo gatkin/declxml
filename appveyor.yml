@@ -25,4 +25,5 @@ install:
   - "%PYTHON%/Scripts/pip.exe install -r requirements.txt"
 
 test_script:
-  - ps: ./run_tests.ps
+  - "%PYTHON%/python.exe -m pytest --junixtml=TestResults.xml"
+  - ps: ./UploadTestResults.ps

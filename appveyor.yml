@@ -25,4 +25,4 @@ install:
   - "%PYTHON%/Scripts/pip.exe install -r requirements.txt"
 
 test_script:
-  - "%PYTHON%/Scripts/coverage.exe run tests/run_tests.py"
+  - "%PYTHON%/python.exe -m pytest"

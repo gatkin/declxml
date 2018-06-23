@@ -23,11 +23,10 @@ init:
 
 install:
   - "%PYTHON%/Scripts/pip.exe install pipenv"
-  - "%PYTHON%/python.exe -m pipenv shell"
   - "%PYTHON%/python.exe -m pipenv install --dev"
 
 test_script:
-  - "%PYTHON%/python.exe -m pytest --junitxml=TestResults.xml"
+  - "%PYTHON%/python.exe -m pipenv run pytest --junitxml=TestResults.xml"
 
 after_test:
   - ps: |

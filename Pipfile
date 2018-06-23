@@ -13,4 +13,4 @@ pylint = "*"
 coverage = "*"
 sphinx = "*"
 "doc8" = "*"
-
+codecov = "*"

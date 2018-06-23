@@ -3,7 +3,9 @@ python:
 - '2.7'
 - '3.6'
 install:
-- pip install -r requirements.txt
+- pip install pipenv
+- pipenv shell
+- pipenv install --dev
 script:
 - make prcheck
 after_success:

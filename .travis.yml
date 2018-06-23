@@ -3,8 +3,8 @@ python:
 - '2.7'
 - '3.6'
 install:
-- pip install pipenv
-- pipenv install --dev
+- pip install pipenv --upgrade
+- pipenv install --dev --skip-lock
 script:
 - pipenv run make prcheck
 after_success:

@@ -4,7 +4,8 @@ import os.path
 from setuptools import setup
 
 
-readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+dir_path = os.path.abspath(os.path.dirname(__file__))
+readme_path = os.path.join(dir_path, 'README.md')
 with open(readme_path, encoding='utf-8') as readme:
     long_description = readme.read()
 

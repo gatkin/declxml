@@ -20,7 +20,10 @@ html-coverage:
 	rm -rf /tmp/htmlcov && mv htmlcov /tmp/
 	open /tmp/htmlcov/index.html
 
-prcheck: check pylint doccheck coverage 
+package:
+	python setup.py sdist
+
+prcheck: check pylint doccheck coverage package
 
 pylint:
 	python -m pylint --rcfile .pylintrc declxml.py

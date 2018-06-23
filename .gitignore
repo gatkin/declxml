@@ -104,3 +104,8 @@ ENV/
 .pytest_cache/
 .vscode/
 .idea/*
+
+# Do not include the Pipfile.lock file in source control since declxml is
+# a library and not an application. Furthermore, declxml only has dev
+# dependencies.
+Pipfile.lock

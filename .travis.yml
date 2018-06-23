@@ -1,16 +1,14 @@
 language: python
 python:
 - '2.7'
-- '3.4'
 - '3.5'
 - '3.6'
 - 3.6-dev
-- 3.7-dev
-- nightly
 install:
-- pip install -r requirements.txt
+- pip install pipenv
+- pipenv install --dev --skip-lock
 script:
-- coverage run tests/run_tests.py
+- pipenv run make prcheck
 after_success:
 - codecov
 deploy:

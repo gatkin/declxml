@@ -532,7 +532,6 @@ def test_parse_dictionary_aliased():
         xml.string('gender'),
     ], alias='stats')
 
-
     person = xml.dictionary('person', [
         xml.string('name'),
         stats,

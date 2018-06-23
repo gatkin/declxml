@@ -540,8 +540,10 @@ def test_primitive_transform_attribute():
     def _to_xml(x):
         return int(x / 2)
 
+    transform = xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml)
+
     processor = xml.dictionary('data', [
-        xml.integer('element', attribute='value', transform=xml.ValueTransform(from_xml=_from_xml, to_xml=_to_xml))
+        xml.integer('element', attribute='value', transform=transform)
     ])
 
     _transform_test_case_run(processor, value, xml_string)

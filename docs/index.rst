@@ -6,25 +6,32 @@
 declxml - Declarative XML Processing
 ====================================
 
-The declxml library provides a simple, declarative API for parsing and serializing XML documents.
-For the most common and straightforward processing tasks, declxml aims to replace the need for writing
-and maintaining dozens or hundreds of lines of imperative serialization and parsing logic required when
-using lower-level APIs such as ElementTree directly. The declxml library was inspired by the simplicity
-and declarative nature of Golang's XML processing library.
+The declxml library provides a simple, declarative API for parsing and
+serializing XML documents. For the most common and straightforward processing
+tasks, declxml aims to replace the need for writing and maintaining dozens or
+hundreds of lines of imperative serialization and parsing logic required when
+using lower-level APIs such as ElementTree directly. The declxml library was
+inspired by the simplicity and declarative nature of Golang's XML processing
+library.
 
-declxml works with *processors* which declaratively define the structure of the XML document.
-Processors are used to both serialize and parse XML data as well as to perform a basic level of
-validation.
+declxml works with *processors* which declaratively define the structure of an
+XML document. Processors are used to both serialize and parse XML data as well
+as to perform a basic level of validation.
 
 
 Installation
 ------------
-Install with pip
+Install using either pip
 
 .. sourcecode:: bash
 
-    pip install -U declxml
+    pip install declxml
 
+or pipenv
+
+.. sourcecode:: bash
+
+    pipenv install declxml
 
 .. toctree::
    :maxdepth: 2
@@ -36,8 +43,8 @@ Install with pip
 
 Usage
 -----
-With declxml, you declaratively define the structure of your XML document using processors which can be used for both parsing and
-serialization.
+With declxml, you declaratively define the structure of your XML document using
+processors which can be used for both parsing and serialization.
 
 .. sourcecode:: py
 

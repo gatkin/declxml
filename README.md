@@ -9,15 +9,27 @@
 XML processing made easy. No more writing and maintaining dozens or hundreds of lines of imperative serialization and parsing logic. With declxml, you declaratively define the structure of your XML document and let declxml handle the rest.
 
 ## Installation
+
+Install using either pip
+
+```bash
+pip install declxml
 ```
-pip install -U declxml
+
+or [Pipenv](https://docs.pipenv.org/)
+
+```bash
+Pipenv install declxml
 ```
 
 ## Documentation
+
 For detailed documentation, see the project's [documentation page](http://declxml.readthedocs.io/).
 
 ## Usage
+
 Given some XML to process
+
 ```xml
 <author>
     <name>Robert A. Heinlein</name>
@@ -34,6 +46,7 @@ Given some XML to process
 ```
 
 Create a declxml processor that defines the structure of the document
+
 ```python
 >>> import declxml as xml
 
@@ -48,7 +61,8 @@ Create a declxml processor that defines the structure of the document
 
 ```
 
-Then, use that processor to parse XML data
+Then use that processor to parse the XML data
+
 ```python
 >>> from pprint import pprint
 >>> author_xml = """
@@ -74,8 +88,8 @@ Then, use that processor to parse XML data
 ```
 
 The same processor can also be used to serialize data to XML
-```python
 
+```python
 >>> author = {
 ...     'birth-year': 1920,
 ...     'name': 'Issac Asimov',
@@ -90,6 +104,7 @@ The same processor can also be used to serialize data to XML
 ...         }
 ...     ]
 ...  }
+
 
 >>> print(xml.serialize_to_string(author_processor, author, indent='    '))
 <?xml version="1.0" encoding="utf-8"?>
@@ -108,25 +123,26 @@ The same processor can also be used to serialize data to XML
 
 ```
 
-Want to work with objects instead of dictionaries? You can do that with declxml too.
+Want to work with objects instead of dictionaries? You can do that with declxml too
+
 ```python
 >>> class Author:
-... 
+...
 ...     def __init__(self):
 ...         self.name = None
 ...         self.birth_year = None
 ...         self.books = []
-... 
+...
 ...     def __repr__(self):
 ...         return 'Author(name=\'{}\', birth_year={}, books={})'.format(
 ...             self.name, self.birth_year, self.books)
- 
+
 >>> class Book:
-... 
+...
 ...     def __init__(self):
 ...         self.title = None
 ...         self.published = None
-... 
+...
 ...     def __repr__(self):
 ...         return 'Book(title=\'{}\', published={})'.format(self.title, self.published)
 ...
@@ -146,6 +162,7 @@ Author(name='Robert A. Heinlein', birth_year=1907, books=[Book(title='Starship T
 ```
 
 What about namedtuples, you say? Those are extremely useful, and declxml lets you work with them as well
+
 ```python
 >>> from collections import namedtuple
 

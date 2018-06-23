@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Contains unit tests for serialization logic"""
 import os
-from io import open
 
 import pytest
 
@@ -53,7 +52,7 @@ def test_array_serialize_array_of_arrays():
     """Tests serializing arrays of arrays"""
     value = {
         'results': [
-            [3, 2 , 4],
+            [3, 2, 4],
             [4, 3],
             [12, 32, 87, 9],
         ]
@@ -92,7 +91,7 @@ def test_array_serialize_array_of_arrays_omit_empty():
     """Tests serializing arrays of arrays with omit empty option specified"""
     value = {
         'results': [
-            [3, 2 , 4],
+            [3, 2, 4],
             [],
             [12, 32, 87, 9],
         ]
@@ -625,7 +624,7 @@ def test_attribute_serialize_multiple():
     expected = strip_xml("""
     <root>
         <data attribute_a="Hello, World" attribute_b="True">1</data>
-        <message>Hello, World</message> 
+        <message>Hello, World</message>
     </root>
     """)
 
@@ -959,7 +958,7 @@ def test_primitive_serialize_missing_omitted():
     expected = strip_xml("""
     <root>
         <data>1</data>
-    </root>  
+    </root>
     """)
 
     actual = xml.serialize_to_string(processor, value)
@@ -994,7 +993,7 @@ def test_primitive_values_serialize():
     ])
 
     expected = strip_xml("""
-    <root>  
+    <root>
         <boolean>True</boolean>
         <float>3.14</float>
         <int>1</int>
@@ -1024,7 +1023,7 @@ def test_primitive_values_serialize_falsey():
     ])
 
     expected = strip_xml("""
-    <root>  
+    <root>
         <boolean>False</boolean>
         <float>0.0</float>
         <int>0</int>
@@ -1054,7 +1053,7 @@ def test_primitive_values_serialize_falsey_omitted():
     ])
 
     expected = strip_xml("""
-    <root />  
+    <root />
     """)
 
     actual = xml.serialize_to_string(processor, value)
@@ -1079,7 +1078,7 @@ def test_primitive_values_serialize_none_default():
         <float />
         <int />
         <string />
-    </root>  
+    </root>
     """)
 
     actual = xml.serialize_to_string(processor, value)
@@ -1128,7 +1127,7 @@ def test_serialize_to_file(tmpdir):
     ])
 
     expected = strip_xml("""
-    <root>  
+    <root>
         <boolean>True</boolean>
         <float>3.14</float>
         <int>1</int>
@@ -1146,4 +1145,3 @@ def test_serialize_to_file(tmpdir):
     actual = xml_file.read()
 
     assert expected == actual
-

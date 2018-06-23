@@ -25,4 +25,4 @@ install:
   - "%PYTHON%/Scripts/pip.exe install -r requirements.txt"
 
 test_script:
-  - ps: run_tests.ps
+  - ps: ./run_tests.ps

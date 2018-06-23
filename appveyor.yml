@@ -26,4 +26,9 @@ install:
 
 test_script:
   - "%PYTHON%/python.exe -m pytest --junitxml=TestResults.xml"
-  - ps: ./UploadTestResults.ps
+
+after_test:
+  - ps: |
+      $client = New-Object "System.Net.WebClient"
+      $client.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path TestResults.xml))
+

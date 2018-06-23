@@ -21,12 +21,17 @@ as to perform a basic level of validation.
 
 Installation
 ------------
-Install with pip
+Install using either pip
 
 .. sourcecode:: bash
 
-    pip install -U declxml
+    pip install declxml
 
+or pipenv
+
+.. sourcecode:: bash
+
+    pipenv install declxml
 
 .. toctree::
    :maxdepth: 2

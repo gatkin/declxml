@@ -23,7 +23,7 @@ init:
 
 install:
   - "%PYTHON%/Scripts/pip.exe install pipenv"
-  - "%PYTHON%/python.exe -m pipenv install --dev"
+  - "%PYTHON%/python.exe -m pipenv install --dev --skip-lock"
 
 test_script:
   - "%PYTHON%/python.exe -m pipenv run pytest --junitxml=TestResults.xml"

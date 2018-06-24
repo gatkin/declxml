@@ -30,6 +30,8 @@ dictionaries, arrays, and user objects.
 Hooks
 ------------------
 .. autoclass:: declxml.Hooks
+.. autoclass:: declxml.ProcessorStateView
+    :members:
 
 Parsing
 ----------
@@ -121,6 +123,56 @@ class Hooks(object):
         """
         self.after_parse = after_parse
         self.before_serialize = before_serialize
+
+
+# Represents a location of a processor in an XML document.
+ProcessorLocation = namedtuple('ProcessorLocation', [
+    'element_path',  # Path to the element relative to the previous location.
+    'array_index',  # Index of the element if in an array, None if not in an array.
+])
+
+
+class ProcessorStateView(object):
+    """Provides an immutable view of the processor state."""
+
+    def __init__(self, processor_state):
+        """
+        Create a new processor state view.
+
+        :param processor_state: Underlying processor state object.
+        """
+        self._processor_state = processor_state
+
+    @property
+    def locations(self):
+        """
+        Get iterator of the ProcessorLocations visited by the processor.
+
+        Represents the current location of the processor in the XML document.
+
+        A ProcessorLocation represents a single location of a processor in an
+        XML document. It is a namedtuple with two fields: element_path and
+        array_index. The element_path field contains the path to the element
+        in the XML document relative to the previous location in the list of
+        locations. The array_index field contains the index of the element if
+        it is in an array, otherwise it is None if the element is not in an
+        array.
+
+        :return: Iterator of ProcessorLocation objects.
+        """
+        return self._processor_state.locations
+
+    def raise_error(self, exception_type, message):
+        """
+        Raise an error with the processor state included in the error message.
+
+        :param exception_type: Type of exception to raise
+        :param message: Error message
+        """
+        self._processor_state.raise_error(exception_type, message)
+
+    def __repr__(self):
+        return repr(self._processor_state)
 
 
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
@@ -875,13 +927,13 @@ class _PrimitiveValue(object):
 class _ProcessorState(object):
     """Keeps track of the state of the processor in order to provide useful error messages."""
 
-    _Location = namedtuple('_ProcessorLocation', [
-        'element',
-        'array_index',
-    ])
-
     def __init__(self):
         self._locations = []
+
+    @property
+    def locations(self):
+        """Get list of locations representing current location of the processor."""
+        return iter(self._locations)
 
     def pop_location(self):
         """Pop the most recently pushed location from the state's stack of locations."""
@@ -889,7 +941,7 @@ class _ProcessorState(object):
 
     def push_location(self, element_path, array_index=None):
         """Push an item onto the state's stack of locations."""
-        location = _ProcessorState._Location(element=element_path, array_index=array_index)
+        location = ProcessorLocation(element_path=element_path, array_index=array_index)
         self._locations.append(location)
 
     def raise_error(self, exception_type, message):
@@ -900,17 +952,17 @@ class _ProcessorState(object):
     def __repr__(self):
         # Exclude the any locations specified with a dot which just means the "current location"
         # from the path string.
-        location_strings = (_ProcessorState._location_to_string(location)
+        location_strings = (self._location_to_string(location)
                             for location in self._locations
-                            if location.element != '.')
+                            if location.element_path != '.')
         return '/'.join(location_strings)
 
     @staticmethod
     def _location_to_string(location):
         if location.array_index is not None:
-            location_str = '{}[{}]'.format(location.element, location.array_index)
+            location_str = '{}[{}]'.format(location.element_path, location.array_index)
         else:
-            location_str = location.element
+            location_str = location.element_path
 
         return location_str
 
@@ -962,6 +1014,7 @@ def _element_get_or_add_from_parent(parent, element_path):
     # that does not exist. Create that element and all the elements following it in the path. If
     # all elements along the path exist, then we will simply walk the full path to the final
     # element we want to return.
+    existing_element = None
     previous_element = parent
     for i, element_name in enumerate(element_names):
         existing_element = previous_element.find(element_name)

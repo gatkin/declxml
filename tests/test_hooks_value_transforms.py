@@ -1,4 +1,4 @@
-"""Tests for providing hooks during the parsing and serialization"""
+"""Tests for using hooks for value transformations"""
 from collections import OrderedDict, namedtuple
 
 import pytest

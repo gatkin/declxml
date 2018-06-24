@@ -102,19 +102,6 @@ class Hooks(object):
     If a processor is only ever going to be used for parsing, then the before_serialize function
     may be omitted. Likewise, if a processor is only ever going to be used for serializing, then
     the after_parse function may be omitted.
-
-    >>> hooks = Hooks(
-    ...     after_parse=lambda _, x: x.upper(),
-    ...     before_serialize=lambda _, x: x.lower()
-    ... )
-    >>> processor = dictionary('data',[
-    ...     string('value', hooks=hooks)
-    ... ])
-    >>> xml_data = '<data><value>hello</value></data>'
-    >>> parse_from_string(processor, xml_data)
-    {'value': 'HELLO'}
-    >>> serialize_to_string(processor, {'value': 'HELLO'})
-    '<data><value>hello</value></data>'
     """
 
     def __init__(self, after_parse=None, before_serialize=None):
@@ -165,7 +152,7 @@ class ProcessorStateView(object):
         """
         return self._processor_state.locations
 
-    def raise_error(self, exception_type, message):
+    def raise_error(self, exception_type, message=''):
         """
         Raise an error with the processor state included in the error message.
 

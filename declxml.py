@@ -99,9 +99,7 @@ class Hooks(object):
     serialized to XML by the processor during serialization. This function must return a value
     that the processor will serialize to XML.
 
-    If a processor is only ever going to be used for parsing, then the before_serialize function
-    may be omitted. Likewise, if a processor is only ever going to be used for serializing, then
-    the after_parse function may be omitted.
+    Both the after_parse and before_serialize functions are optional.
     """
 
     def __init__(self, after_parse=None, before_serialize=None):
@@ -1031,28 +1029,18 @@ def _element_path_create_new(element_path):
 
 def _hooks_apply_after_parse(hooks, state, value):
     """Apply the after parse hook."""
-    if not hooks:
-        return value
+    if hooks and hooks.after_parse:
+        return hooks.after_parse(ProcessorStateView(state), value)
 
-    if not hooks.after_parse:
-        state.raise_error(XmlError,
-                          'No after_parse function provided in hooks. Cannot perform parsing.')
-
-    return hooks.after_parse(ProcessorStateView(state), value)
+    return value
 
 
 def _hooks_apply_before_serialize(hooks, state, value):
     """Apply the before serialize hook."""
-    if not hooks:
-        return value
+    if hooks and hooks.before_serialize:
+        return hooks.before_serialize(ProcessorStateView(state), value)
 
-    if not hooks.before_serialize:
-        state.raise_error(
-            XmlError,
-            'No before_serialize function provided in hooks. Cannot perform serialization.'
-        )
-
-    return hooks.before_serialize(ProcessorStateView(state), value)
+    return value
 
 
 def _is_valid_root_processor(processor):

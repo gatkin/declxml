@@ -1,7 +1,6 @@
 """Tests for using hooks for value transformations"""
 from collections import OrderedDict, namedtuple
 
-import pytest
 
 import declxml as xml
 from .helpers import strip_xml
@@ -339,40 +338,6 @@ class TestUserObjectValueTransform(object):
         ], hooks=hooks)
 
 
-def test_aggregate_transform_missing_from_xml():
-    """Parse with a missing aggregate hooks"""
-    xml_string = strip_xml("""
-    <data>
-        <value key="a">1</value>
-        <value key="b">2</value>
-    </data>
-    """)
-
-    processor = xml.array(xml.dictionary('value', [
-        xml.string('.', attribute='key'),
-        xml.integer('.', alias='value'),
-    ]), hooks=xml.Hooks())
-
-    with pytest.raises(xml.XmlError):
-        xml.parse_from_string(processor, xml_string)
-
-
-def test_aggregate_transform_missing_to_xml():
-    """Serialize with a missing aggregate hooks"""
-    value = {
-        'a': 1,
-        'b': 2,
-    }
-
-    processor = xml.array(xml.dictionary('value', [
-        xml.string('.', attribute='key'),
-        xml.integer('.', alias='value'),
-    ]), hooks=xml.Hooks())
-
-    with pytest.raises(xml.XmlError):
-        xml.serialize_to_string(processor, value)
-
-
 def test_boolean_transform():
     """Transform boolean values"""
     xml_string = strip_xml("""
@@ -549,36 +514,6 @@ def test_primitive_transform_attribute():
     ])
 
     _transform_test_case_run(processor, value, xml_string)
-
-
-def test_primitive_transform_missing_from_xml():
-    """Parse with a missing from XML hooks"""
-    xml_string = strip_xml("""
-        <data>
-            <value>3</value>
-        </data>
-    """)
-
-    processor = xml.dictionary('data', [
-        xml.integer('value', hooks=xml.Hooks())
-    ])
-
-    with pytest.raises(xml.XmlError):
-        xml.parse_from_string(processor, xml_string)
-
-
-def test_primitive_transform_missing_to_xml():
-    """Serialize with a missing to XML hooks"""
-    value = {
-        'value': 6,
-    }
-
-    processor = xml.dictionary('data', [
-        xml.integer('value', hooks=xml.Hooks())
-    ])
-
-    with pytest.raises(xml.XmlError):
-        xml.serialize_to_string(processor, value)
 
 
 def test_string_transform():

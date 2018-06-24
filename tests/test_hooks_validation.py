@@ -506,6 +506,55 @@ class TestValidateUserObject(object):
         return processor
 
 
+def test_aggregate_missing_hooks():
+    """Process with missing aggregate hooks."""
+    hooks = xml.Hooks(
+        after_parse=None,
+        before_serialize=None
+    )
+
+    processor = xml.dictionary('data', [
+        xml.integer('a'),
+        xml.integer('b')
+    ], hooks=hooks)
+
+    xml_string = strip_xml("""
+    <data>
+        <a>1</a>
+        <b>2</b>
+    </data>
+    """)
+
+    value = {
+        'a': 1,
+        'b': 2,
+    }
+
+    _assert_valid(processor, value, xml_string)
+
+
+def test_primitive_missing_hooks():
+    """Process primitive value with missing hooks."""
+    hooks = xml.Hooks(
+        after_parse=None,
+        before_serialize=None
+    )
+
+    processor = xml.dictionary('data', [
+        xml.integer('value', hooks=hooks)
+    ])
+
+    xml_string = strip_xml("""
+    <data>
+        <value>1</value>
+    </data>
+    """)
+
+    value = {'value': 1}
+
+    _assert_valid(processor, value, xml_string)
+
+
 def test_processor_locations_parsing():
     """Get processor location in hooks callback."""
     expected_locations = [
@@ -514,6 +563,7 @@ def test_processor_locations_parsing():
     ]
 
     def trace(state, _):
+        assert isinstance(state, xml.ProcessorStateView)
         assert expected_locations == list(state.locations)
 
     hooks = xml.Hooks(

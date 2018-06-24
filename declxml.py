@@ -86,23 +86,26 @@ class Hooks(object):
     Contains functions to be invoked during parsing and serialization.
 
     A Hooks object contains two functions: after_parse and before_serialize. Both of these
-    functions receive one argument and should return one value.
+    functions receive two arguments and should return one value.
 
-    The after_parse function will receive the value parsed by the processor from the XML data
-    during parsing. This function must return a value to be used by the processor as the parse
-    result.
+    As their first argument, both functions will receive a ProcessorStateView object representing
+    the current state of the processor when the function is invoked.
 
-    Similarly, the before_serialize function will receive the value to be serialized to XML by the
-    processor during serialization. This function must return a value to be used by the processor
-    to serialize to XML.
+    The after_parse function will receive as its second argument the value parsed by the processor
+    from the XML data during parsing. This function must return a value that will be used by the
+    processor as its parse result.
+
+    Similarly, the before_serialize function will receive as its second argument the value to be
+    serialized to XML by the processor during serialization. This function must return a value
+    that the processor will serialize to XML.
 
     If a processor is only ever going to be used for parsing, then the before_serialize function
     may be omitted. Likewise, if a processor is only ever going to be used for serializing, then
     the after_parse function may be omitted.
 
     >>> hooks = Hooks(
-    ...     after_parse=lambda x: x.upper(),
-    ...     before_serialize=lambda x: x.lower()
+    ...     after_parse=lambda _, x: x.upper(),
+    ...     before_serialize=lambda _, x: x.lower()
     ... )
     >>> processor = dictionary('data',[
     ...     string('value', hooks=hooks)
@@ -749,26 +752,26 @@ class _HookedAggregate(object):
     def parse_at_element(self, element, state):
         """Parse the given element."""
         xml_value = self._processor.parse_at_element(element, state)
-        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
     def parse_at_root(self, root, state):
         """Parse the given element as the root of the document."""
         xml_value = self._processor.parse_at_root(root, state)
-        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
     def parse_from_parent(self, parent, state):
         """Parse the element from the given parent element."""
         xml_value = self._processor.parse_from_parent(parent, state)
-        return _hooks_apply_after_parse(self._hooks, xml_value, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
     def serialize(self, value, state):
         """Serialize the value and returns it."""
-        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
         return self._processor.serialize(xml_value, state)
 
     def serialize_on_parent(self, parent, value, state):
         """Serialize the value directory on the parent."""
-        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
         self._processor.serialize_on_parent(parent, xml_value, state)
 
 
@@ -839,7 +842,7 @@ class _PrimitiveValue(object):
                 MissingValue, 'Missing required element "{}"'.format(self.element_path)
             )
 
-        return _hooks_apply_after_parse(self._hooks, parsed_value, state)
+        return _hooks_apply_after_parse(self._hooks, state, parsed_value)
 
     def parse_from_parent(self, parent, state):
         """Parse the primitive value under the parent XML element."""
@@ -902,7 +905,7 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value, state):
         """Serialize the value to the element."""
-        xml_value = _hooks_apply_before_serialize(self._hooks, value, state)
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
 
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
@@ -1042,7 +1045,7 @@ def _element_path_create_new(element_path):
     return (start_element, end_element)
 
 
-def _hooks_apply_after_parse(hooks, value, state):
+def _hooks_apply_after_parse(hooks, state, value):
     """Apply the after parse hook."""
     if not hooks:
         return value
@@ -1051,10 +1054,10 @@ def _hooks_apply_after_parse(hooks, value, state):
         state.raise_error(XmlError,
                           'No after_parse function provided in hooks. Cannot perform parsing.')
 
-    return hooks.after_parse(value)
+    return hooks.after_parse(ProcessorStateView(state), value)
 
 
-def _hooks_apply_before_serialize(hooks, value, state):
+def _hooks_apply_before_serialize(hooks, state, value):
     """Apply the before serialize hook."""
     if not hooks:
         return value
@@ -1065,7 +1068,7 @@ def _hooks_apply_before_serialize(hooks, value, state):
             'No before_serialize function provided in hooks. Cannot perform serialization.'
         )
 
-    return hooks.before_serialize(value)
+    return hooks.before_serialize(ProcessorStateView(state), value)
 
 
 def _is_valid_root_processor(processor):

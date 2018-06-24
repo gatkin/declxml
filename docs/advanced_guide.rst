@@ -148,7 +148,7 @@ to XML, we could use a value transform
     ... </data>
     ... """
 
-    >>> hooks = xml.Hooks(after_parse=lambda x: x.upper(), before_serialize=lambda x: x.lower())
+    >>> hooks = xml.Hooks(after_parse=lambda _, x: x.upper(), before_serialize=lambda _, x: x.lower())
     >>> processor = xml.dictionary('data', [
     ...     xml.string('message', hooks=hooks),
     ... ])

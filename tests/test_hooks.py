@@ -11,7 +11,7 @@ class TestArrayValueTransform(object):
     """Transform array values"""
 
     @staticmethod
-    def _after_parse(array_value):
+    def _after_parse(_, array_value):
         dict_value = OrderedDict()
         for item in array_value:
             dict_value[item['key']] = item['value']
@@ -19,7 +19,7 @@ class TestArrayValueTransform(object):
         return dict_value
 
     @staticmethod
-    def _before_serialize(dict_value):
+    def _before_serialize(_, dict_value):
         return [{'key': k, 'value': v} for k, v in dict_value.items()]
 
     def test_array_of_arrays(self):
@@ -131,7 +131,7 @@ class TestDictionaryValueTransform(object):
     """Transform dictionary values"""
 
     @staticmethod
-    def _after_parse(dict_value):
+    def _after_parse(_, dict_value):
         list_value = []
         for key, value in dict_value.items():
             list_value.append((key, value))
@@ -139,7 +139,7 @@ class TestDictionaryValueTransform(object):
         return sorted(list_value)
 
     @staticmethod
-    def _before_serialize(list_value):
+    def _before_serialize(_, list_value):
         dict_value = {}
         for key, value in list_value:
             dict_value[key] = value
@@ -256,11 +256,11 @@ class TestUserObjectValueTransform(object):
             return other.name == self.name and other.age == self.age
 
     @staticmethod
-    def _after_parse(object_value):
+    def _after_parse(_, object_value):
         return object_value.name, object_value.age
 
     @staticmethod
-    def _before_serialize(tuple_value):
+    def _before_serialize(_, tuple_value):
         object_value = TestUserObjectValueTransform._Person()
         object_value.name = tuple_value[0]
         object_value.age = tuple_value[1]
@@ -385,13 +385,13 @@ def test_boolean_transform():
         'value': 'It is true'
     }
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         if x:
             return 'It is true'
         else:
             return 'It is false'
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         if x == 'It is true':
             return True
         else:
@@ -418,10 +418,10 @@ def test_floating_point_transform():
         'value': 26.2
     }
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         return x * 2.0
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         return x / 2.0
 
     hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
@@ -445,10 +445,10 @@ def test_integer_transform():
         'value': 6
     }
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         return int(x * 2)
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         return int(x / 2)
 
     hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
@@ -476,13 +476,13 @@ def test_named_tuple_transform():
         'age': 24,
     }
 
-    def _after_parse(tuple_value):
+    def _after_parse(_, tuple_value):
         return {
             'name': tuple_value.name,
             'age': tuple_value.age,
         }
 
-    def _before_serialize(dict_value):
+    def _before_serialize(_, dict_value):
         return Person(name=dict_value['name'], age=dict_value['age'])
 
     processor = xml.named_tuple('person', Person, [
@@ -509,10 +509,10 @@ def test_primitive_transform_array_element():
         32,
     ]
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         return int(x * 2)
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         return int(x / 2)
 
     hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
@@ -536,10 +536,10 @@ def test_primitive_transform_attribute():
         'value': 6,
     }
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         return int(x * 2)
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         return int(x / 2)
 
     hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)
@@ -593,10 +593,10 @@ def test_string_transform():
         'value': 'HELLO'
     }
 
-    def _after_parse(x):
+    def _after_parse(_, x):
         return x.upper()
 
-    def _before_serialize(x):
+    def _before_serialize(_, x):
         return x.lower()
 
     hooks = xml.Hooks(after_parse=_after_parse, before_serialize=_before_serialize)

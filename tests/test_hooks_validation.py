@@ -506,6 +506,37 @@ class TestValidateUserObject(object):
         return processor
 
 
+def test_processor_locations_parsing():
+    """Get processor location in hooks callback."""
+    expected_locations = [
+        xml.ProcessorLocation(element_path='data', array_index=None),
+        xml.ProcessorLocation(element_path='value', array_index=None)
+    ]
+
+    def trace(state, _):
+        assert expected_locations == list(state.locations)
+
+    hooks = xml.Hooks(
+        after_parse=trace,
+        before_serialize=trace,
+    )
+
+    processor = xml.dictionary('data', [
+        xml.integer('value', hooks=hooks),
+    ])
+
+    xml_string = strip_xml("""
+    <data>
+        <value>1</value>
+    </data>
+    """)
+
+    value = {'value': 1}
+
+    xml.parse_from_string(processor, xml_string)
+    xml.serialize_to_string(processor, value)
+
+
 def _assert_invalid(processor, value, xml_string):
     """Assert the processor rejects the XML and value as invalid."""
     with pytest.raises(_ValidationError):

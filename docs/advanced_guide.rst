@@ -291,7 +291,7 @@ received in which locations in the XML document.
 
     >>> processor = xml.dictionary('data', [
     ...     xml.integer('value', hooks=hooks),
-    ... ])
+    ... ], hooks=hooks)
 
     >>> xml_string = """
     ... <data>
@@ -301,10 +301,12 @@ received in which locations in the XML document.
 
     >>> xml.parse_from_string(processor, xml_string)
     Got 42 at data/value
+    Got {'value': 42} at data
     {'value': 42}
 
     >>> data = {'value': 17}
     >>> print(xml.serialize_to_string(processor, data, indent='    '))
+    Got {'value': 17} at data
     Got 17 at data/value
     <?xml version="1.0" encoding="utf-8"?>
     <data>

@@ -28,19 +28,19 @@ class _ErrorMessageTestCase(object):
 
     def test_parse(self):
         """Tests parsing with error message"""
-        with pytest.raises(self.__class__.expected_exception_type) as exception_info:
-            xml.parse_from_string(self.__class__.processor, self.__class__.xml_string)
+        with pytest.raises(self.expected_exception_type) as exception_info:
+            xml.parse_from_string(self.processor, self.xml_string)
 
         actual_message = str(exception_info)
-        assert actual_message.endswith(self.__class__.expected_message)
+        assert actual_message.endswith(self.expected_message)
 
     def test_serialize(self):
         """Tests serializing with error message"""
-        with pytest.raises(self.__class__.expected_exception_type) as exception_info:
-            xml.serialize_to_string(self.__class__.processor, self.__class__.value)
+        with pytest.raises(self.expected_exception_type) as exception_info:
+            xml.serialize_to_string(self.processor, self.value)
 
         actual_message = str(exception_info)
-        assert actual_message.endswith(self.__class__.expected_message)
+        assert actual_message.endswith(self.expected_message)
 
 
 class TestMissingWithDot(_ErrorMessageTestCase):

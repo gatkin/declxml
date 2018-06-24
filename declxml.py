@@ -201,6 +201,7 @@ def parse_from_string(root_processor, xml_string):
     _xml_namespace_strip(root)
 
     state = _ProcessorState()
+    state.push_location(root_processor.element_path)
     return root_processor.parse_at_root(root, state)
 
 
@@ -573,9 +574,7 @@ class _Array(object):
 
         array_element = _element_find_from_root(root, self._nested)
         if array_element is not None:
-            state.push_location(self._nested)
             parsed_array = self.parse_at_element(array_element, state)
-            state.pop_location()
         elif self.required:
             raise MissingValue('Missing required array at root: "{}"'.format(self._nested))
 
@@ -681,9 +680,7 @@ class _Dictionary(object):
 
         dict_element = _element_find_from_root(root, self.element_path)
         if dict_element is not None:
-            state.push_location(self.element_path)
             parsed_dict = self.parse_at_element(dict_element, state)
-            state.pop_location()
         elif self.required:
             raise MissingValue('Missing required root aggregate "{}"'.format(self.element_path))
 

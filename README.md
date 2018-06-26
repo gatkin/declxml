@@ -21,7 +21,7 @@ pip install declxml
 or [Pipenv](https://docs.pipenv.org/)
 
 ```bash
-Pipenv install declxml
+pipenv install declxml
 ```
 
 ## Documentation

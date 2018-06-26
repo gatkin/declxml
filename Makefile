@@ -1,7 +1,7 @@
 check:
 	python -m flake8 --max-complexity 10 declxml.py
 	python -m flake8 --max-complexity 10 tests/
-	python -m pydocstyle declxml.py
+	python -m pydocstyle --add-ignore=D105 declxml.py
 
 coverage:
 	python -m coverage run tests/run_tests.py
@@ -13,12 +13,15 @@ docbuild:
 
 doccheck: docbuild
 	doc8 docs/*.rst
-	
+
 html-coverage:
 	python -m coverage run tests/run_tests.py
 	python -m coverage html
 	rm -rf /tmp/htmlcov && mv htmlcov /tmp/
 	open /tmp/htmlcov/index.html
+
+html-doc: docbuild
+	open docs/_build/html/index.html
 
 package:
 	python setup.py sdist

@@ -27,9 +27,11 @@ dictionaries, arrays, and user objects.
 .. autofunction:: declxml.named_tuple
 .. autofunction:: declxml.user_object
 
-Value Transformers
+Hooks
 ------------------
-.. autoclass:: declxml.ValueTransform
+.. autoclass:: declxml.Hooks
+.. autoclass:: declxml.ProcessorStateView
+    :members:
 
 Parsing
 ----------
@@ -79,54 +81,86 @@ class MissingValue(XmlError):
     """Represents errors due to missing required values."""
 
 
-class ValueTransform(object):
+class Hooks(object):
     """
-    Contains functions used to transform values when parsing and serializing.
+    Contains functions to be invoked during parsing and serialization.
 
-    A ValueTransform object contains two functions: from_xml and to_xml. Both of these functions
-    receive one argument and should return one value.
+    A Hooks object contains two functions: after_parse and before_serialize. Both of these
+    functions receive two arguments and should return one value.
 
-    The from_xml function will receive the value parsed by the processor from the XML data during
-    parsing. The from_xml function can perform any arbitrary transformation on the parsed value.
-    The returned transformed value will be used as the processor's parsing result.
+    As their first argument, both functions will receive a ProcessorStateView object representing
+    the current state of the processor when the function is invoked.
 
-    Similarly, the to_xml function will receive the value to be serialized to XML by the processor
-    during serialization. The to_xml function should transform the value into a shape that can be
-    serialized by the processor. The transformed value returned by the to_xml function will be
-    provided to the processor to serialize into XML.
+    The after_parse function will receive as its second argument the value parsed by the processor
+    from the XML data during parsing. This function must return a value that will be used by the
+    processor as its parse result.
 
-    The from_xml and to_xml functions should be inverse operations of each other. The from_xml
-    function transforms values from the raw XML format into a format the caller wants to use, and
-    the to_xml function performs the inverse transform from a format used by the caller into the
-    raw XML format that can be serialized directly.
+    Similarly, the before_serialize function will receive as its second argument the value to be
+    serialized to XML by the processor during serialization. This function must return a value
+    that the processor will serialize to XML.
 
-    If a processor is only ever going to be used for parsing, then the to_xml function may be
-    omitted. Likewise, if a processor is only ever going to be used for serializing, then the
-    from_xml function may be omitted.
-
-    >>> transform = ValueTransform(
-    ...     from_xml=lambda x: x.upper(),
-    ...     to_xml=lambda x: x.lower()
-    ... )
-    >>> processor = dictionary('data',[
-    ...     string('value', transform=transform)
-    ... ])
-    >>> xml_data = '<data><value>hello</value></data>'
-    >>> parse_from_string(processor, xml_data)
-    {'value': 'HELLO'}
-    >>> serialize_to_string(processor, {'value': 'HELLO'})
-    '<data><value>hello</value></data>'
+    Both the after_parse and before_serialize functions are optional.
     """
 
-    def __init__(self, from_xml=None, to_xml=None):
+    def __init__(self, after_parse=None, before_serialize=None):
         """
-        Create a new ValueTransform.
+        Create a new Hooks object.
 
-        :param from_xml: A function to transform values from XML values.
-        :param to_xml: A function to transform values to XML values.
+        :param after_parse: Function to be invoked after a value has been parsed.
+        :param before_serialize: Function to be invoked before a value is serialized.
         """
-        self.from_xml = from_xml
-        self.to_xml = to_xml
+        self.after_parse = after_parse
+        self.before_serialize = before_serialize
+
+
+# Represents a location of a processor in an XML document.
+ProcessorLocation = namedtuple('ProcessorLocation', [
+    'element_path',  # Path to the element relative to the previous location.
+    'array_index',  # Index of the element if in an array, None if not in an array.
+])
+
+
+class ProcessorStateView(object):
+    """Provides an immutable view of the processor state."""
+
+    def __init__(self, processor_state):
+        """
+        Create a new processor state view.
+
+        :param processor_state: Underlying processor state object.
+        """
+        self._processor_state = processor_state
+
+    @property
+    def locations(self):
+        """
+        Get iterator of the ProcessorLocations visited by the processor.
+
+        Represents the current location of the processor in the XML document.
+
+        A ProcessorLocation represents a single location of a processor in an
+        XML document. It is a namedtuple with two fields: element_path and
+        array_index. The element_path field contains the path to the element
+        in the XML document relative to the previous location in the list of
+        locations. The array_index field contains the index of the element if
+        it is in an array, otherwise it is None if the element is not in an
+        array.
+
+        :return: Iterator of ProcessorLocation objects.
+        """
+        return self._processor_state.locations
+
+    def raise_error(self, exception_type, message=''):
+        """
+        Raise an error with the processor state included in the error message.
+
+        :param exception_type: Type of exception to raise
+        :param message: Error message
+        """
+        self._processor_state.raise_error(exception_type, message)
+
+    def __repr__(self):
+        return repr(self._processor_state)
 
 
 def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
@@ -165,6 +199,7 @@ def parse_from_string(root_processor, xml_string):
     _xml_namespace_strip(root)
 
     state = _ProcessorState()
+    state.push_location(root_processor.element_path)
     return root_processor.parse_at_root(root, state)
 
 
@@ -216,7 +251,7 @@ def serialize_to_string(root_processor, value, indent=None):
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False, transform=None):
+def array(item_processor, alias=None, nested=None, omit_empty=False, hooks=None):
     """
     Create an array processor that can be used to parse and serialize array data.
 
@@ -260,12 +295,12 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, transform=N
         for an array of arrays, any empty arrays in the outer array will always be
         serialized to prevent information about the original array from being lost
         when serializing.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
     processor = _Array(item_processor, alias, nested, omit_empty)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def boolean(
@@ -275,7 +310,7 @@ def boolean(
         alias=None,
         default=False,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for boolean values.
@@ -294,7 +329,7 @@ def boolean(
     :param omit_empty: If True, then Falsey values will be omitted when serializing to XML. Note
         that Falsey values are never omitted when they are elements of an array. Falsey values can
         be omitted only when they are standalone elements.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
@@ -306,11 +341,11 @@ def boolean(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
-def dictionary(element_name, children, required=True, alias=None, transform=None):
+def dictionary(element_name, children, required=True, alias=None, hooks=None):
     """
     Create a processor for dictionary values.
 
@@ -321,12 +356,12 @@ def dictionary(element_name, children, required=True, alias=None, transform=None
     :param required: Indicates whether the value is required when parsing and serializing.
     :param alias: If specified, then this is used as the name of the value when read from
         XML. If not specified, then the element_name is used as the name of the value.
-    :param transform: A ValueTransform object.
+    :param hooks: A Hooks object.
 
     :return: A declxml processor object.
     """
     processor = _Dictionary(element_name, children, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def floating_point(
@@ -336,7 +371,7 @@ def floating_point(
         alias=None,
         default=0.0,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for floating point values.
@@ -352,7 +387,7 @@ def floating_point(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
@@ -363,7 +398,7 @@ def integer(
         alias=None,
         default=0,
         omit_empty=False,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for integer values.
@@ -379,7 +414,7 @@ def integer(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
@@ -389,7 +424,7 @@ def named_tuple(
         child_processors,
         required=True,
         alias=None,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for namedtuple values.
@@ -400,7 +435,7 @@ def named_tuple(
     """
     converter = _named_tuple_converter(tuple_type)
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 def string(
@@ -411,7 +446,7 @@ def string(
         default='',
         omit_empty=False,
         strip_whitespace=True,
-        transform=None
+        hooks=None
 ):
     """
     Create a processor for string values.
@@ -430,11 +465,11 @@ def string(
         alias,
         default,
         omit_empty,
-        transform
+        hooks
     )
 
 
-def user_object(element_name, cls, child_processors, required=True, alias=None, transform=None):
+def user_object(element_name, cls, child_processors, required=True, alias=None, hooks=None):
     """
     Create a processor for user objects.
 
@@ -444,7 +479,7 @@ def user_object(element_name, cls, child_processors, required=True, alias=None, 
     """
     converter = _user_object_converter(cls)
     processor = _Aggregate(element_name, converter, child_processors, required, alias)
-    return _processor_wrap_if_transform(processor, transform)
+    return _processor_wrap_if_hooks(processor, hooks)
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
@@ -537,9 +572,7 @@ class _Array(object):
 
         array_element = _element_find_from_root(root, self._nested)
         if array_element is not None:
-            state.push_location(self._nested)
             parsed_array = self.parse_at_element(array_element, state)
-            state.pop_location()
         elif self.required:
             raise MissingValue('Missing required array at root: "{}"'.format(self._nested))
 
@@ -645,9 +678,7 @@ class _Dictionary(object):
 
         dict_element = _element_find_from_root(root, self.element_path)
         if dict_element is not None:
-            state.push_location(self.element_path)
             parsed_dict = self.parse_at_element(dict_element, state)
-            state.pop_location()
         elif self.required:
             raise MissingValue('Missing required root aggregate "{}"'.format(self.element_path))
 
@@ -690,6 +721,42 @@ class _Dictionary(object):
             state.pop_location()
 
 
+class _HookedAggregate(object):
+    """A processor which decorates a processor and applies hooks to all values processed."""
+
+    def __init__(self, processor, hooks):
+        self.element_path = processor.element_path
+        self.required = processor.required
+        self.alias = processor.alias
+        self._processor = processor
+        self._hooks = hooks
+
+    def parse_at_element(self, element, state):
+        """Parse the given element."""
+        xml_value = self._processor.parse_at_element(element, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
+
+    def parse_at_root(self, root, state):
+        """Parse the given element as the root of the document."""
+        xml_value = self._processor.parse_at_root(root, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
+
+    def parse_from_parent(self, parent, state):
+        """Parse the element from the given parent element."""
+        xml_value = self._processor.parse_from_parent(parent, state)
+        return _hooks_apply_after_parse(self._hooks, state, xml_value)
+
+    def serialize(self, value, state):
+        """Serialize the value and returns it."""
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
+        return self._processor.serialize(xml_value, state)
+
+    def serialize_on_parent(self, parent, value, state):
+        """Serialize the value directory on the parent."""
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
+        self._processor.serialize_on_parent(parent, xml_value, state)
+
+
 class _PrimitiveValue(object):
     """An XML processor for processing primitive values."""
 
@@ -702,7 +769,7 @@ class _PrimitiveValue(object):
             alias=None,
             default=None,
             omit_empty=False,
-            transform=None
+            hooks=None
     ):
         """
         Create a new processor for primitive values.
@@ -715,14 +782,14 @@ class _PrimitiveValue(object):
         :param default: Default value. Only valid if required is False.
         :param omit_empty: Omit the value when serializing if it is a falsey value. Only valid if
             required is False.
-        :param transform: A ValueTransform object.
+        :param hooks: A Hooks object.
         """
         self.element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
         self.required = required
         self._default = default
-        self._transform = transform
+        self._hooks = hooks
 
         if alias:
             self.alias = alias
@@ -757,7 +824,7 @@ class _PrimitiveValue(object):
                 MissingValue, 'Missing required element "{}"'.format(self.element_path)
             )
 
-        return _transform_value_from_xml(self._transform, parsed_value, state)
+        return _hooks_apply_after_parse(self._hooks, state, parsed_value)
 
     def parse_from_parent(self, parent, state):
         """Parse the primitive value under the parent XML element."""
@@ -820,7 +887,7 @@ class _PrimitiveValue(object):
 
     def _serialize(self, element, value, state):
         """Serialize the value to the element."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
+        xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
 
         # A value is only considered missing, and hence eligible to be replaced by its
         # default only if it is None. Falsey values are not considered missing and are
@@ -845,13 +912,13 @@ class _PrimitiveValue(object):
 class _ProcessorState(object):
     """Keeps track of the state of the processor in order to provide useful error messages."""
 
-    _Location = namedtuple('_ProcessorLocation', [
-        'element',
-        'array_index',
-    ])
-
     def __init__(self):
         self._locations = []
+
+    @property
+    def locations(self):
+        """Get iterator of locations representing current location of the processor."""
+        return iter(self._locations)
 
     def pop_location(self):
         """Pop the most recently pushed location from the state's stack of locations."""
@@ -859,66 +926,30 @@ class _ProcessorState(object):
 
     def push_location(self, element_path, array_index=None):
         """Push an item onto the state's stack of locations."""
-        location = _ProcessorState._Location(element=element_path, array_index=array_index)
+        location = ProcessorLocation(element_path=element_path, array_index=array_index)
         self._locations.append(location)
 
     def raise_error(self, exception_type, message):
         """Raise an exception with the current parser state information and error message."""
-        error_message = '{} at {}'.format(message, self.__repr__())
+        error_message = '{} at {}'.format(message, repr(self))
         raise exception_type(error_message)
 
     def __repr__(self):
         # Exclude the any locations specified with a dot which just means the "current location"
         # from the path string.
-        location_strings = (_ProcessorState._location_to_string(location)
+        location_strings = (self._location_to_string(location)
                             for location in self._locations
-                            if location.element != '.')
+                            if location.element_path != '.')
         return '/'.join(location_strings)
 
     @staticmethod
     def _location_to_string(location):
         if location.array_index is not None:
-            location_str = '{}[{}]'.format(location.element, location.array_index)
+            location_str = '{}[{}]'.format(location.element_path, location.array_index)
         else:
-            location_str = location.element
+            location_str = location.element_path
 
         return location_str
-
-
-class _TransformedAggregate(object):
-    """A processor which decorates a processor and applies a transform to all values processed."""
-
-    def __init__(self, processor, transform):
-        self.element_path = processor.element_path
-        self.required = processor.required
-        self.alias = processor.alias
-        self._processor = processor
-        self._transform = transform
-
-    def parse_at_element(self, element, state):
-        """Parse the given element."""
-        xml_value = self._processor.parse_at_element(element, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def parse_at_root(self, root, state):
-        """Parse the given element as the root of the document."""
-        xml_value = self._processor.parse_at_root(root, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def parse_from_parent(self, parent, state):
-        """Parse the element from the given parent element."""
-        xml_value = self._processor.parse_from_parent(parent, state)
-        return _transform_value_from_xml(self._transform, xml_value, state)
-
-    def serialize(self, value, state):
-        """Serialize the value and returns it."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
-        return self._processor.serialize(xml_value, state)
-
-    def serialize_on_parent(self, parent, value, state):
-        """Serialize the value directory on the parent."""
-        xml_value = _transform_value_to_xml(self._transform, value, state)
-        self._processor.serialize_on_parent(parent, xml_value, state)
 
 
 def _element_append_path(start_element, element_names):
@@ -968,6 +999,7 @@ def _element_get_or_add_from_parent(parent, element_path):
     # that does not exist. Create that element and all the elements following it in the path. If
     # all elements along the path exist, then we will simply walk the full path to the final
     # element we want to return.
+    existing_element = None
     previous_element = parent
     for i, element_name in enumerate(element_names):
         existing_element = previous_element.find(element_name)
@@ -992,7 +1024,23 @@ def _element_path_create_new(element_path):
     start_element = ET.Element(element_names[0])
     end_element = _element_append_path(start_element, element_names[1:])
 
-    return (start_element, end_element)
+    return start_element, end_element
+
+
+def _hooks_apply_after_parse(hooks, state, value):
+    """Apply the after parse hook."""
+    if hooks and hooks.after_parse:
+        return hooks.after_parse(ProcessorStateView(state), value)
+
+    return value
+
+
+def _hooks_apply_before_serialize(hooks, state, value):
+    """Apply the before serialize hook."""
+    if hooks and hooks.before_serialize:
+        return hooks.before_serialize(ProcessorStateView(state), value)
+
+    return value
 
 
 def _is_valid_root_processor(processor):
@@ -1018,6 +1066,8 @@ def _named_tuple_converter(tuple_type):
 def _number_parser(str_to_number_func):
     """Return a function to parse numbers."""
     def _parse_number_value(element_text, state):
+        value = None
+
         try:
             value = str_to_number_func(element_text)
         except (ValueError, TypeError):
@@ -1031,6 +1081,8 @@ def _number_parser(str_to_number_func):
 
 def _parse_boolean(element_text, state):
     """Parse the raw XML string as a boolean value."""
+    value = None
+
     lowered_text = element_text.lower()
     if lowered_text == 'true':
         value = True
@@ -1042,10 +1094,10 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _processor_wrap_if_transform(processor, transform):
-    """Create a transformed processor if a valid transform is provided."""
-    if transform:
-        return _TransformedAggregate(processor, transform)
+def _processor_wrap_if_hooks(processor, hooks):
+    """Create a hooked processor if a valid hooks object is provided."""
+    if hooks:
+        return _HookedAggregate(processor, hooks)
 
     return processor
 
@@ -1063,30 +1115,6 @@ def _string_parser(strip_whitespace):
         return value
 
     return _parse_string_value
-
-
-def _transform_value_from_xml(transform, value, state):
-    """Apply the transform to the raw XML value."""
-    if not transform:
-        return value
-
-    if not transform.from_xml:
-        state.raise_error(XmlError,
-                          'No from_xml function provided in transform. Cannot perform parsing.')
-
-    return transform.from_xml(value)
-
-
-def _transform_value_to_xml(transform, value, state):
-    """Apply the transform to the value."""
-    if not transform:
-        return value
-
-    if not transform.to_xml:
-        state.raise_error(XmlError,
-                          'No to_xml function provided in transform. Cannot perform serialization.')
-
-    return transform.to_xml(value)
 
 
 def _user_object_converter(cls):

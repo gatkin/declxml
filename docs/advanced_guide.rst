@@ -203,7 +203,7 @@ to XML, we could use hooks to perform value transformations.
 When using hooks to perform value transformations, it is a good idea to ensure
 that the transformations performed by `after_parse` and `before_serialize` are
 inverse operations of each other so that parsing and serialization work
-correctly when using transformed values. This is particular important when
+correctly when using transformed values. This is particularly important when
 values are transformed into different types.
 
 Validation
@@ -219,8 +219,8 @@ reporting errors. This method will raise an application-provided exception
 with a custom error message and will include information about the current
 state of the processor in the error message.
 
-For example, if we wanted to ensure that integer values were in a specific
-range, we could use hooks to perform the validation.
+For example, if we want to ensure that integer values are in a specific range,
+we could use hooks to perform the validation.
 
 .. sourcecode:: py
 

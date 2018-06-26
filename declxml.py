@@ -106,7 +106,7 @@ class Hooks(object):
         """
         Create a new Hooks object.
 
-        :param after_parse: Function to be invoked after a value has be parsed.
+        :param after_parse: Function to be invoked after a value has been parsed.
         :param before_serialize: Function to be invoked before a value is serialized.
         """
         self.after_parse = after_parse
@@ -917,7 +917,7 @@ class _ProcessorState(object):
 
     @property
     def locations(self):
-        """Get list of locations representing current location of the processor."""
+        """Get iterator of locations representing current location of the processor."""
         return iter(self._locations)
 
     def pop_location(self):
@@ -931,7 +931,7 @@ class _ProcessorState(object):
 
     def raise_error(self, exception_type, message):
         """Raise an exception with the current parser state information and error message."""
-        error_message = '{} at {}'.format(message, self.__repr__())
+        error_message = '{} at {}'.format(message, repr(self))
         raise exception_type(error_message)
 
     def __repr__(self):
@@ -1024,7 +1024,7 @@ def _element_path_create_new(element_path):
     start_element = ET.Element(element_names[0])
     end_element = _element_append_path(start_element, element_names[1:])
 
-    return (start_element, end_element)
+    return start_element, end_element
 
 
 def _hooks_apply_after_parse(hooks, state, value):
@@ -1066,6 +1066,8 @@ def _named_tuple_converter(tuple_type):
 def _number_parser(str_to_number_func):
     """Return a function to parse numbers."""
     def _parse_number_value(element_text, state):
+        value = None
+
         try:
             value = str_to_number_func(element_text)
         except (ValueError, TypeError):
@@ -1079,6 +1081,8 @@ def _number_parser(str_to_number_func):
 
 def _parse_boolean(element_text, state):
     """Parse the raw XML string as a boolean value."""
+    value = None
+
     lowered_text = element_text.lower()
     if lowered_text == 'true':
         value = True

@@ -23,6 +23,11 @@ html-coverage:
 html-doc: docbuild
 	open docs/_build/html/index.html
 
+mutation-test:
+	cosmic-ray init cosmic-ray.yml session
+	cosmic-ray --verbose exec session
+	cosmic-ray dump session | cr-report
+
 package:
 	python setup.py sdist
 

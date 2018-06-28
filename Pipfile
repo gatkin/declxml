@@ -14,5 +14,5 @@ coverage = "*"
 sphinx = "*"
 "doc8" = "*"
 codecov = "*"
-cosmic-ray-pytest-runner = "*"
-cosmic-ray = "*"
+cosmic-ray-pytest-runner = {version = "*", python_version = ">= '3.0'"}
+cosmic-ray = {version = "*", python_version = ">= '3.0'"}

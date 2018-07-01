@@ -19,7 +19,6 @@ def run_only_tests():
 # supported Python versions.
 _PYTHON_VERSION_TO_CHECKS = {
     '2.7': run_all_checks,
-    '3.3': run_only_tests,
     '3.4': run_only_tests,
     '3.5': run_all_checks,
     '3.6': run_all_checks,

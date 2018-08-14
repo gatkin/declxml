@@ -54,7 +54,7 @@ from collections import namedtuple
 from io import open
 import sys
 import warnings
-import xml.dom.minidom as minidom
+from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 

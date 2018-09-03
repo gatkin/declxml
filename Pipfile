@@ -16,3 +16,4 @@ sphinx = "*"
 codecov = "*"
 cosmic-ray-pytest-runner = {version = "*", python_version = ">= '3.0'"}
 cosmic-ray = {version = "*", python_version = ">= '3.0'"}
+attrs = "*"

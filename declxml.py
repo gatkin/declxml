@@ -1120,10 +1120,14 @@ def _string_parser(strip_whitespace):
 def _user_object_converter(cls):
     """Return an _AggregateConverter for a user object of the given class."""
     def _from_dict(dict_value):
-        object_value = cls()
-
-        for field_name, field_value in dict_value.items():
-            setattr(object_value, field_name, field_value)
+        try:
+            object_value = cls(**dict_value)
+        except TypeError:
+            # Constructor does not support keyword arguments, try setting each
+            # field individually.
+            object_value = cls()
+            for field_name, field_value in dict_value.items():
+                setattr(object_value, field_name, field_value)
 
         return object_value
 

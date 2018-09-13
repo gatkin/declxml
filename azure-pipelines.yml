@@ -45,7 +45,7 @@ jobs:
       pipenv run make coverage
     displayName: 'Measure Coverage'
 
-  - script: make doccheck
+  - script: pipenv run make doccheck
     displayName: 'Build Documentation'
 
   - task: PublishTestResults@2

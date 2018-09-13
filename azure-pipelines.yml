@@ -38,8 +38,12 @@ jobs:
     displayName: 'Lint'
 
   - script: |
-      pipenv run make coverage
+      pipenv run make test
     displayName: 'Test'
+
+  - script: |
+      pipenv run make coverage
+    displayName: 'Measure Coverage'
 
   - script: make doccheck
     displayName: 'Build Documentation'

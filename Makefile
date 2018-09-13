@@ -37,4 +37,4 @@ pylint:
 	python -m pylint --rcfile .pylintrc declxml.py
 
 test:
-	python -m pytest -v
+	python -m pytest -vv --junit-xml=test-results.xml

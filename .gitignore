@@ -109,3 +109,5 @@ ENV/
 # a library and not an application. Furthermore, declxml only has dev
 # dependencies.
 Pipfile.lock
+
+test-results.xml

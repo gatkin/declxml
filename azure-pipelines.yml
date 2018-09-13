@@ -65,5 +65,5 @@ jobs:
       versionSpec: '3.x'
       architecture: 'x64'
 
-  - script: pipenv run make package
+  - script: python setup.py sdist
     displayName: 'Build sdist'

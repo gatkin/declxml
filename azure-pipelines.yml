@@ -97,3 +97,26 @@ jobs:
     - template: azure-steps/test.yml
       parameters:
         python_version: '$(python.version)'
+
+  - job: publish
+    dependsOn:
+    - Lint
+    - Docs
+    - Linux
+    - Windows
+    - MacOs
+    condition: and(succeeded())
+    pool:
+      vmImage: 'Ubuntu 16.04'
+
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Setup Python
+      inputs:
+        versionSpec: '3.7'
+
+    - task: PyPIPublisher@0
+      displayName: Package and Publish to PyPI
+      inputs:
+        pypiConnection: pypi-test-conn
+        packageDirectory: '$(System.DefaultWorkingDirectory)'

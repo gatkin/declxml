@@ -1,0 +1,31 @@
+steps:
+  - task: UsePythonVersion@0
+    displayName: Setup Python${{parameters.python_version}}
+    inputs:
+      versionSpec: '${{parameters.python_version}}'
+
+  - template: azure-steps/install_deps.yml
+
+  - script: 'pipenv run make coverage'
+    displayName: Run Tests with Coverage
+
+  - task: PublishTestResults@2
+    displayName: Publish Test Results
+    inputs:
+      testResultsFiles: 'test-results.xml'
+      mergeTestResults: true
+      testRunTitle: '$(agent.os) Python ${{parameters.python_version}}'
+      platform: Linux
+    condition: succeededOrFailed()
+
+  - task: PublishCodeCoverageResults@1
+    displayName: Publish Code Coverage Results
+    inputs:
+      codeCoverageTool: 'cobertura'
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+      reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
+      failIfCoverageEmpty: true
+  
+  - script: 'pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-${{parameters.python_version}}" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python=${{parameters.python_version}}'
+    displayName: Upload to codecov.io
+    condition: succeeded()

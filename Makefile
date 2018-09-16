@@ -24,8 +24,9 @@ html-doc: docbuild
 	open docs/_build/html/index.html
 
 install:
-    python -m pip install -U pipenv
-    python -m pipenv install --dev
+	python -m pip install -U pip
+	python -m pip install -U pipenv
+	python -m pipenv install --dev
 
 mutation-test:
 	cosmic-ray init cosmic-ray.yml session

@@ -7,6 +7,7 @@ coverage:
 	python -m coverage run tests/run_tests.py --junit-xml=test-results.xml
 	# A few lines only run depending on whether it is Python 2 or Python 3
 	python -m coverage xml --fail-under=99 -o coverage.xml
+	python -m coverage html
 
 docbuild:
 	$(MAKE) -C docs html

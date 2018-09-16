@@ -34,7 +34,7 @@ jobs:
         pipenv run make doccheck
       displayName: Build Docs
 
-  - job: linux
+  - job: Linux
     pool:
       vmImage: 'Ubuntu 16.04'
     strategy:
@@ -68,7 +68,7 @@ jobs:
       inputs:
         testResultsFiles: 'test-results.xml'
         mergeTestResults: true
-        testRunTitle: '$(agent.os) py$(python.version)'
+        testRunTitle: '$(agent.os) Python $(python.version)'
         platform: linux
       condition: succeededOrFailed()
 
@@ -77,4 +77,5 @@ jobs:
       inputs:
         codeCoverageTool: 'cobertura'
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
         failIfCoverageEmpty: true

@@ -4,7 +4,7 @@ steps:
     inputs:
       versionSpec: '${{parameters.python_version}}'
 
-  - template: azure-steps/install_deps.yml
+  - template: install_deps.yml
 
   - script: 'pipenv run make coverage'
     displayName: Run Tests with Coverage

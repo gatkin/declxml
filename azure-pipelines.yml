@@ -9,8 +9,7 @@ jobs:
       inputs:
         versionSpec: '3.7'
 
-    - script: 'make install'
-      displayName: Install Dependencies
+    - template: azure-steps/install_deps.yml
 
     - script: |
         pipenv run make check
@@ -27,8 +26,7 @@ jobs:
       inputs:
         versionSpec: '3.7'
 
-    - script: 'make install'
-      displayName: Install Dependencies
+    - template: azure-steps/install_deps.yml
 
     - script: |
         pipenv run make doccheck
@@ -57,8 +55,7 @@ jobs:
       inputs:
         versionSpec: '$(python.version)'
 
-    - script: 'make install'
-      displayName: Install Dependencies
+    - template: azure-steps/install_deps.yml
 
     - script: 'pipenv run make coverage'
       displayName: Run Tests with Coverage
@@ -69,7 +66,7 @@ jobs:
         testResultsFiles: 'test-results.xml'
         mergeTestResults: true
         testRunTitle: '$(agent.os) Python $(python.version)'
-        platform: linux
+        platform: Linux
       condition: succeededOrFailed()
 
     - task: PublishCodeCoverageResults@1

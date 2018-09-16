@@ -20,13 +20,13 @@ jobs:
   - job: Docs
     pool:
       vmImage: 'Ubuntu 16.04'
-    
+
     steps:
     - task: UsePythonVersion@0
       displayName: Setup Python
       inputs:
         versionSpec: '3.7'
-    
+
     - script: 'make install'
       displayName: Install Dependencies
 
@@ -71,3 +71,10 @@ jobs:
         testRunTitle: '$(agent.os) py$(python.version)'
         platform: linux
       condition: succeededOrFailed()
+
+    - task: PublishCodeCoverageResults@1
+      displayName: Publish Code Coverage Results
+      inputs:
+        codeCoverageTool: 'cobertura'
+        summaryFileLocation: 'coverage.xml'
+        failIfCoverageEmpty: true

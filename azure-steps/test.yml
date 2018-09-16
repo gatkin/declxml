@@ -1,6 +1,6 @@
 steps:
   - task: UsePythonVersion@0
-    displayName: Setup Python $(parameters.python_version)
+    displayName: format('Setup Python {0}', parameters.python_version)
     inputs:
       versionSpec: '${{parameters.python_version}}'
 
@@ -14,7 +14,7 @@ steps:
     inputs:
       testResultsFiles: 'test-results.xml'
       mergeTestResults: true
-      testRunTitle: '$(agent.os) Python ${{ parameters.python_version }}'
+      testRunTitle: format('$(agent.os) Python {0}', parameters.python_version)
       platform: Linux
     condition: succeededOrFailed()
 

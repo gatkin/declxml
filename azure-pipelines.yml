@@ -70,4 +70,4 @@ jobs:
         mergeTestResults: true
         testRunTitle: '$(agent.os) py$(python.version)'
         platform: linux
-  condition: succeededOrFailed()
+      condition: succeededOrFailed()

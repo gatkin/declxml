@@ -75,3 +75,25 @@ jobs:
     - template: azure-steps/test.yml
       parameters:
         python_version: '$(python.version)'
+
+  - job: MacOS
+    pool:
+      vmImage: 'macOS 10.13'
+    strategy:
+      maxParallel: 4
+      matrix:
+        python27:
+          python.version: '2.7'
+        python34:
+          python.version: '3.4'
+        python35:
+          python.version: '3.5'
+        python36:
+          python.version: '3.6'
+        python37:
+          python.version: '3.7'
+
+    steps:
+    - template: azure-steps/test.yml
+      parameters:
+        python_version: '$(python.version)'

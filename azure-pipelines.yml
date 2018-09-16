@@ -33,3 +33,41 @@ jobs:
     - script: |
         pipenv run make doccheck
       displayName: Build Docs
+
+  - job: linux
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    strategy:
+      maxParallel: 4
+      matrix:
+        python27:
+          python.version: '2.7'
+        python34:
+          python.version: '3.4'
+        python35:
+          python.version: '3.5'
+        python36:
+          python.version: '3.6'
+        python37:
+          python.version: '3.7'
+
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Setup Python$(python.version)
+      inputs:
+        versionSpec: '$(python.version)'
+
+    - script: 'make install'
+      displayName: Install Dependencies
+
+    - script: 'make coverage'
+      displayName: Run Tests with Coverage
+
+    - task: PublishTestResults@2
+      displayName: Publish Test Results
+      inputs:
+        testResultsFiles: 'test-results.xml'
+        mergeTestResults: true
+        testRunTitle: '$(agent.os) py$(python.version)'
+        platform: linux
+  condition: succeededOrFailed()

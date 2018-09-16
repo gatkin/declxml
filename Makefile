@@ -4,7 +4,7 @@ check:
 	python -m pydocstyle --add-ignore=D105 declxml.py
 
 coverage:
-	python -m coverage run tests/run_tests.py
+	python -m coverage run tests/run_tests.py --junit-xml=test-results.xml
 	# A few lines only run depending on whether it is Python 2 or Python 3
 	python -m coverage report --fail-under=99
 

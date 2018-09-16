@@ -26,6 +26,6 @@ steps:
       reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
       failIfCoverageEmpty: true
   
-  - script: 'pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-$(parameters.python_version)" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python=$(parameters.python_version)'
+  - script: ${{format('pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-{0}" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python={0}', parameters.python_version)}}
     displayName: Upload to codecov.io
     condition: succeeded()

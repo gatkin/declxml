@@ -1,6 +1,6 @@
 steps:
   - task: UsePythonVersion@0
-    displayName: Setup Python ${{ parameters.python_version }}
+    displayName: Setup Python $(parameters.python_version)
     inputs:
       versionSpec: '${{parameters.python_version}}'
 
@@ -26,6 +26,6 @@ steps:
       reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
       failIfCoverageEmpty: true
   
-  - script: 'pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-${{ parameters.python_version }}" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python=${{ parameters.python_version }}'
+  - script: 'pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-$(parameters.python_version)" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python=$(parameters.python_version)'
     displayName: Upload to codecov.io
     condition: succeeded()

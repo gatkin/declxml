@@ -14,5 +14,5 @@ jobs:
 
     - script: |
         pipenv run make check
-        pipenv run make lint
+        pipenv run make pylint
       displayName: Lint

@@ -1,7 +1,7 @@
 jobs:
   - job: Lint
     pool:
-      vmInage: 'Ubuntu 16.04'
+      vmImage: 'Ubuntu 16.04'
 
     steps:
     - task: UsePythonVersion@0
@@ -15,4 +15,4 @@ jobs:
     - script: |
         pipenv run make check
         pipenv run make lint
-      dispalyName: Lint
+      displayName: Lint

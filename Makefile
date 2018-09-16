@@ -4,9 +4,10 @@ check:
 	python -m pydocstyle --add-ignore=D105 declxml.py
 
 coverage:
-	python -m coverage run tests/run_tests.py
+	python -m coverage run tests/run_tests.py --junit-xml=test-results.xml
 	# A few lines only run depending on whether it is Python 2 or Python 3
-	python -m coverage report --fail-under=99
+	python -m coverage xml --fail-under=99 -o coverage.xml
+	python -m coverage html
 
 docbuild:
 	$(MAKE) -C docs html
@@ -23,6 +24,11 @@ html-coverage:
 html-doc: docbuild
 	open docs/_build/html/index.html
 
+install:
+	python -m pip install -U pip
+	python -m pip install -U pipenv
+	python -m pipenv install --dev --skip-lock
+
 mutation-test:
 	cosmic-ray init cosmic-ray.yml session
 	cosmic-ray --verbose exec session
@@ -37,4 +43,4 @@ pylint:
 	python -m pylint --rcfile .pylintrc declxml.py
 
 test:
-	python -m pytest -v
+	python -m pytest -vv --junit-xml=test-results.xml

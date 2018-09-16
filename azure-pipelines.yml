@@ -1,0 +1,99 @@
+jobs:
+  - job: Lint
+    pool:
+      vmImage: 'Ubuntu 16.04'
+
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Setup Python
+      inputs:
+        versionSpec: '3.7'
+
+    - template: azure-steps/install_deps.yml
+
+    - script: |
+        pipenv run make check
+        pipenv run make pylint
+      displayName: Lint
+
+  - job: Docs
+    pool:
+      vmImage: 'Ubuntu 16.04'
+
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Setup Python
+      inputs:
+        versionSpec: '3.7'
+
+    - template: azure-steps/install_deps.yml
+
+    - script: |
+        pipenv run make doccheck
+      displayName: Build Docs
+
+  - job: Linux
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    strategy:
+      maxParallel: 4
+      matrix:
+        python27:
+          python.version: '2.7'
+        python34:
+          python.version: '3.4'
+        python35:
+          python.version: '3.5'
+        python36:
+          python.version: '3.6'
+        python37:
+          python.version: '3.7'
+
+    steps:
+    - template: azure-steps/test.yml
+      parameters:
+        python_version: '$(python.version)'
+
+  - job: Windows
+    pool:
+      vmImage: 'vs2017-win2016'
+    strategy:
+      maxParallel: 4
+      matrix:
+        python27:
+          python.version: '2.7'
+        python34:
+          python.version: '3.4'
+        python35:
+          python.version: '3.5'
+        python36:
+          python.version: '3.6'
+        python37:
+          python.version: '3.7'
+
+    steps:
+    - template: azure-steps/test.yml
+      parameters:
+        python_version: '$(python.version)'
+
+  - job: MacOS
+    pool:
+      vmImage: 'macOS 10.13'
+    strategy:
+      maxParallel: 4
+      matrix:
+        python27:
+          python.version: '2.7'
+        python34:
+          python.version: '3.4'
+        python35:
+          python.version: '3.5'
+        python36:
+          python.version: '3.6'
+        python37:
+          python.version: '3.7'
+
+    steps:
+    - template: azure-steps/test.yml
+      parameters:
+        python_version: '$(python.version)'

@@ -30,6 +30,6 @@ steps:
     inputs:
       targetType: inline
       workingDirectory: '$(System.DefaultWorkingDirectory)'
-      script: ${{format('pipenv run python -m codecov -f $(System.DefaultWorkingDirectory)/coverage.xml --token $(CODECOV_TOKEN) --required --name "$(agent.os)-{0}" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python={0}', parameters.python_version)}}
+      script: ${{format('pipenv run python -m codecov -f $(pwd)/coverage.xml --token $(CODECOV_TOKEN) --required --name "$(agent.os)-{0}" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python={0}', parameters.python_version)}}
     displayName: Upload to codecov.io
     condition: succeeded()

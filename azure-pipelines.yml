@@ -79,3 +79,7 @@ jobs:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov'
         failIfCoverageEmpty: true
+    
+    - script: 'pipenv run python -m codecov --token $(CODECOV_TOKEN) --required --name "$(agent.os)-$(python.version)" --build "$(Build.DefinitionName)" --env OS=$(agent.os) python=$(python.version)'
+      displayName: Upload to codecov.io
+      condition: and(succeeded(), variables['CODECOV_TOKEN'])

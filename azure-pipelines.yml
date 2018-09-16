@@ -60,7 +60,7 @@ jobs:
     - script: 'make install'
       displayName: Install Dependencies
 
-    - script: 'make coverage'
+    - script: 'pipenv run make coverage'
       displayName: Run Tests with Coverage
 
     - task: PublishTestResults@2

@@ -17,7 +17,7 @@ jobs:
         pipenv run make pylint
       displayName: Lint
 
-  - job: Build Docs
+  - job: Docs
     pool:
       vmImage: 'Ubuntu 16.04'
     

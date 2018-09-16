@@ -16,3 +16,20 @@ jobs:
         pipenv run make check
         pipenv run make pylint
       displayName: Lint
+
+  - job: Build Docs
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Setup Python
+      inputs:
+        versionSpec: '3.7'
+    
+    - script: 'make install'
+      displayName: Install Dependencies
+
+    - script: |
+        pipenv run make doccheck
+      displayName: Build Docs

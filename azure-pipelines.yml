@@ -76,5 +76,5 @@ jobs:
       displayName: Publish Code Coverage Results
       inputs:
         codeCoverageTool: 'cobertura'
-        summaryFileLocation: 'coverage.xml'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
         failIfCoverageEmpty: true

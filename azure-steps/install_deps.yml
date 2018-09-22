@@ -1,3 +1,6 @@
+variables:
+  PIPENV_VENV_IN_PROJECT: TRUE
+
 steps:
   - script: 'make install'
     displayName: Install Dependencies

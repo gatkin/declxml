@@ -118,5 +118,5 @@ jobs:
     - task: PyPIPublisher@0
       displayName: Package and Publish to PyPI
       inputs:
-        pypiConnection: pypi-test-conn
+        pypiConnection: pypi-conn
         packageDirectory: '$(System.DefaultWorkingDirectory)'

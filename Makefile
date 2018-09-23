@@ -44,3 +44,7 @@ pylint:
 
 test:
 	python -m pytest -vv --junit-xml=test-results.xml
+
+typecheck:
+	python -m mypy declxml.py
+	python -m mypy --py2 declxml.py

@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+typing = "*"
 
 [dev-packages]
 pytest = "*"
@@ -17,3 +18,4 @@ codecov = "*"
 cosmic-ray-pytest-runner = {version = "*", python_version = ">= '3.0'"}
 cosmic-ray = {version = "*", python_version = ">= '3.0'"}
 attrs = "*"
+mypy = {version = "==0.630", python_version = ">= '3.4'"}

@@ -1,5 +1,5 @@
 jobs:
-  - job: Lint
+  - job: Lint and Typecheck
     pool:
       vmImage: 'Ubuntu 16.04'
 
@@ -14,6 +14,7 @@ jobs:
     - script: |
         pipenv run make check
         pipenv run make pylint
+        pipenv run make typecheck
       displayName: Lint
 
   - job: Docs

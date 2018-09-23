@@ -53,8 +53,19 @@ Exceptions
 from collections import namedtuple
 from io import open
 import sys
+from typing import (  # noqa pylint: disable=unused-import
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Text,
+    Union,
+)
 import warnings
-from xml.dom import minidom
+from xml.dom import minidom  # type: ignore
 import xml.etree.ElementTree as ET
 
 
@@ -81,6 +92,68 @@ class MissingValue(XmlError):
     """Represents errors due to missing required values."""
 
 
+ProcessorLocation = NamedTuple('ProcessorLocation', [
+    ('element_path', Text),  # Path to the element relative to the previous location.
+    ('array_index', Optional[int]),  # Index of the element if in an array, None if not in an array.
+])
+
+
+class ProcessorStateView(object):
+    """Provides an immutable view of the processor state."""
+
+    def __init__(
+            self,
+            processor_state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
+        """
+        Create a new processor state view.
+
+        :param processor_state: Underlying processor state object.
+        """
+        self._processor_state = processor_state
+
+    @property
+    def locations(self):
+        # type: () -> Iterable[ProcessorLocation]
+        """
+        Get iterator of the ProcessorLocations visited by the processor.
+
+        Represents the current location of the processor in the XML document.
+
+        A ProcessorLocation represents a single location of a processor in an
+        XML document. It is a namedtuple with two fields: element_path and
+        array_index. The element_path field contains the path to the element
+        in the XML document relative to the previous location in the list of
+        locations. The array_index field contains the index of the element if
+        it is in an array, otherwise it is None if the element is not in an
+        array.
+
+        :return: Iterator of ProcessorLocation objects.
+        """
+        return self._processor_state.locations
+
+    def raise_error(
+            self,
+            exception_type,  # type: Exception
+            message=''  # type: Text
+    ):
+        # type: (...) -> None
+        """
+        Raise an error with the processor state included in the error message.
+
+        :param exception_type: Type of exception to raise
+        :param message: Error message
+        """
+        self._processor_state.raise_error(exception_type, message)
+
+    def __repr__(self):
+        return repr(self._processor_state)
+
+
+HookFunction = Callable[[ProcessorStateView, Any], Any]
+
+
 class Hooks(object):
     """
     Contains functions to be invoked during parsing and serialization.
@@ -102,7 +175,12 @@ class Hooks(object):
     Both the after_parse and before_serialize functions are optional.
     """
 
-    def __init__(self, after_parse=None, before_serialize=None):
+    def __init__(
+            self,
+            after_parse=None,  # type: Optional[HookFunction]
+            before_serialize=None  # type: Optional[HookFunction]
+    ):
+        # type: (...) -> None
         """
         Create a new Hooks object.
 
@@ -113,57 +191,84 @@ class Hooks(object):
         self.before_serialize = before_serialize
 
 
-# Represents a location of a processor in an XML document.
-ProcessorLocation = namedtuple('ProcessorLocation', [
-    'element_path',  # Path to the element relative to the previous location.
-    'array_index',  # Index of the element if in an array, None if not in an array.
-])
-
-
-class ProcessorStateView(object):
-    """Provides an immutable view of the processor state."""
-
-    def __init__(self, processor_state):
-        """
-        Create a new processor state view.
-
-        :param processor_state: Underlying processor state object.
-        """
-        self._processor_state = processor_state
+class Processor(object):
+    """Abstract protocol for processors."""
 
     @property
-    def locations(self):
-        """
-        Get iterator of the ProcessorLocations visited by the processor.
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        pass
 
-        Represents the current location of the processor in the XML document.
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        pass
 
-        A ProcessorLocation represents a single location of a processor in an
-        XML document. It is a namedtuple with two fields: element_path and
-        array_index. The element_path field contains the path to the element
-        in the XML document relative to the previous location in the list of
-        locations. The array_index field contains the index of the element if
-        it is in an array, otherwise it is None if the element is not in an
-        array.
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        pass
 
-        :return: Iterator of ProcessorLocation objects.
-        """
-        return self._processor_state.locations
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
+        """Parse value at element."""
+        pass
 
-    def raise_error(self, exception_type, message=''):
-        """
-        Raise an error with the processor state included in the error message.
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
+        """Parse value from parent element."""
+        pass
 
-        :param exception_type: Type of exception to raise
-        :param message: Error message
-        """
-        self._processor_state.raise_error(exception_type, message)
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
+        """Serialize a value to an XML element."""
+        pass
 
-    def __repr__(self):
-        return repr(self._processor_state)
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
+        """Serialize value on parent element."""
+        pass
 
 
-def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
+class RootProcessor(Processor):
+    """Abstract protocol for root processors."""
+
+    def parse_at_root(
+            self,
+            root,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
+        """Parse value from root element."""
+        pass
+
+
+def parse_from_file(
+        root_processor,  # type: RootProcessor
+        xml_file_path,  # type: Text
+        encoding='utf-8'  # type: Text
+):
+    # type: (...) -> Any
     """
     Parse the XML file using the processor starting from the root of the document.
 
@@ -181,7 +286,11 @@ def parse_from_file(root_processor, xml_file_path, encoding='utf-8'):
     return parsed_value
 
 
-def parse_from_string(root_processor, xml_string):
+def parse_from_string(
+        root_processor,  # type: RootProcessor
+        xml_string  # type: Text
+):
+    # type: (...) -> Any
     """
     Parse the XML string using the processor starting from the root of the document.
 
@@ -192,10 +301,11 @@ def parse_from_string(root_processor, xml_string):
     if not _is_valid_root_processor(root_processor):
         raise InvalidRootProcessor('Invalid root processor')
 
+    parseable_xml_string = xml_string  # type: Union[Text, bytes]
     if _PY2 and isinstance(xml_string, unicode):
-        xml_string = xml_string.encode('utf-8')
+        parseable_xml_string = xml_string.encode('utf-8')
 
-    root = ET.fromstring(xml_string)
+    root = ET.fromstring(parseable_xml_string)
     _xml_namespace_strip(root)
 
     state = _ProcessorState()
@@ -203,7 +313,14 @@ def parse_from_string(root_processor, xml_string):
     return root_processor.parse_at_root(root, state)
 
 
-def serialize_to_file(root_processor, value, xml_file_path, encoding='utf-8', indent=None):
+def serialize_to_file(
+        root_processor,  # type: RootProcessor
+        value,  # type: Any
+        xml_file_path,  # type: Text
+        encoding='utf-8',  # type: Text
+        indent=None  # type: Optional[Text]
+):
+    # type: (...) -> None
     """
     Serialize the value to an XML file using the root processor.
 
@@ -219,7 +336,12 @@ def serialize_to_file(root_processor, value, xml_file_path, encoding='utf-8', in
         xml_file.write(serialized_value)
 
 
-def serialize_to_string(root_processor, value, indent=None):
+def serialize_to_string(
+        root_processor,  # type: RootProcessor
+        value,  # type: Any
+        indent=None  # type: Optional[Text]
+):
+    # type: (...) -> Text
     """
     Serialize the value to an XML string using the root processor.
 
@@ -568,7 +690,7 @@ class _Array(object):
             raise InvalidRootProcessor('Non-nested array "{}" cannot be root element'.format(
                 self.alias))
 
-        parsed_array = []
+        parsed_array = []  # type: List[Any]
 
         array_element = _element_find_from_root(root, self._nested)
         if array_element is not None:
@@ -674,7 +796,7 @@ class _Dictionary(object):
 
     def parse_at_root(self, root, state):
         """Parse the root XML element as a dictionary."""
-        parsed_dict = {}
+        parsed_dict = {}  # type: Dict
 
         dict_element = _element_find_from_root(root, self.element_path)
         if dict_element is not None:
@@ -913,7 +1035,7 @@ class _ProcessorState(object):
     """Keeps track of the state of the processor in order to provide useful error messages."""
 
     def __init__(self):
-        self._locations = []
+        self._locations = []  # type: List[ProcessorLocation]
 
     @property
     def locations(self):

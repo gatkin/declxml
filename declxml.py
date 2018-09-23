@@ -50,7 +50,6 @@ Exceptions
 .. autoexception:: declxml.InvalidRootProcessor
 .. autoexception:: declxml.MissingValue
 """
-from collections import namedtuple
 from io import open
 import sys
 from typing import (  # noqa pylint: disable=unused-import
@@ -634,16 +633,24 @@ def user_object(
 
 
 # Defines pair of functions to convert between aggregates and dictionaries
-_AggregateConverter = namedtuple('_AggregateConverter', [
-    'from_dict',
-    'to_dict',
+_AggregateConverter = NamedTuple('_AggregateConverter', [
+    ('from_dict', Callable[[Dict], Any]),
+    ('to_dict', Callable[[Any], Dict]),
 ])
 
 
 class _Aggregate(RootProcessor):
     """An XML processor for processing aggregates."""
 
-    def __init__(self, element_path, converter, child_processors, required=True, alias=None):
+    def __init__(
+            self,
+            element_path,  # type: Text
+            converter,  # type: _AggregateConverter
+            child_processors,  # type: List[Processor]
+            required=True,  # type: bool
+            alias=None  # type: Optional[Text]
+    ):
+        # type: (...) -> None
         self._element_path = element_path
         self._converter = converter
         self._required = required
@@ -671,27 +678,53 @@ class _Aggregate(RootProcessor):
         """Get whether the processor's value is required."""
         return self._required
 
-    def parse_at_element(self, element, state):
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the provided element as an aggregate."""
         parsed_dict = self._dictionary.parse_at_element(element, state)
         return self._converter.from_dict(parsed_dict)
 
-    def parse_at_root(self, root, state):
+    def parse_at_root(
+            self,
+            root,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the root XML element as an aggregate."""
         parsed_dict = self._dictionary.parse_at_root(root, state)
         return self._converter.from_dict(parsed_dict)
 
-    def parse_from_parent(self, parent, state):
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the aggregate from the provided parent XML element."""
         parsed_dict = self._dictionary.parse_from_parent(parent, state)
         return self._converter.from_dict(parsed_dict)
 
-    def serialize(self, value, state):
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
         """Serialize the value to a new element and returns the element."""
         dict_value = self._converter.to_dict(value)
         return self._dictionary.serialize(dict_value, state)
 
-    def serialize_on_parent(self, parent, value, state):
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value and adds it to the parent."""
         dict_value = self._converter.to_dict(value)
         self._dictionary.serialize_on_parent(parent, dict_value, state)
@@ -700,7 +733,14 @@ class _Aggregate(RootProcessor):
 class _Array(RootProcessor):
     """An XML processor for Array values."""
 
-    def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
+    def __init__(
+            self,
+            item_processor,  # type: Processor
+            alias=None,  # type: Optional[Text]
+            nested=None,  # type: Optional[Text]
+            omit_empty=False  # type: bool
+    ):
+        # type: (...) -> None
         self._item_processor = item_processor
         self._nested = nested
         self._required = item_processor.required
@@ -744,18 +784,28 @@ class _Array(RootProcessor):
         """Get whether the processor's value is required."""
         return self._required
 
-    def parse_at_element(self, element, state):
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the provided element as an array."""
         item_iter = element.findall(self._item_processor.element_path)
         return self._parse(item_iter, state)
 
-    def parse_at_root(self, root, state):
+    def parse_at_root(
+            self,
+            root,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the root XML element as an array."""
         if not self._nested:
             raise InvalidRootProcessor('Non-nested array "{}" cannot be root element'.format(
                 self.alias))
 
-        parsed_array = []  # type: List[Any]
+        parsed_array = []  # type: List
 
         array_element = _element_find_from_root(root, self._nested)
         if array_element is not None:
@@ -765,12 +815,22 @@ class _Array(RootProcessor):
 
         return parsed_array
 
-    def parse_from_parent(self, parent, state):
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the array data from the provided parent XML element."""
         item_iter = parent.findall(self._item_path)
         return self._parse(item_iter, state)
 
-    def serialize(self, value, state):
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
         """Serialize the value into a new Element object and return it."""
         if self._nested is None:
             state.raise_error(InvalidRootProcessor,
@@ -786,7 +846,13 @@ class _Array(RootProcessor):
 
         return start_element
 
-    def serialize_on_parent(self, parent, value, state):
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value and append it to the parent element."""
         if not value and self.required:
             state.raise_error(MissingValue, 'Missing required array: "{}"'.format(
@@ -803,7 +869,12 @@ class _Array(RootProcessor):
 
         self._serialize(array_parent, value, state)
 
-    def _parse(self, item_iter, state):
+    def _parse(
+            self,
+            item_iter,  # type: Iterable[ET.Element]
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> List
         """Parse the array data using the provided iterator of XML elements."""
         parsed_array = []
 
@@ -817,7 +888,13 @@ class _Array(RootProcessor):
 
         return parsed_array
 
-    def _serialize(self, array_parent, value, state):
+    def _serialize(
+            self,
+            array_parent,  # type: ET.Element
+            value,  # type: List
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the array value and add it to the array parent element."""
         if not value:
             # Nothing to do. Avoid attempting to iterate over a possibly
@@ -834,7 +911,14 @@ class _Array(RootProcessor):
 class _Dictionary(RootProcessor):
     """An XML processor for dictionary values."""
 
-    def __init__(self, element_path, child_processors, required=True, alias=None):
+    def __init__(
+            self,
+            element_path,  # type: Text
+            child_processors,  # type: List[Processor]
+            required=True,  # type: bool
+            alias=None  # type: Optional[Text]
+    ):
+        # type: (...) -> None
         self._element_path = element_path
         self._child_processors = child_processors
         self._required = required
@@ -861,23 +945,28 @@ class _Dictionary(RootProcessor):
         """Get whether the processor's value is required."""
         return self._required
 
-    def parse_at_element(self, element, state):
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the provided element as a dictionary."""
         parsed_dict = {}
 
-        if element is not None:
-            for child in self._child_processors:
-                state.push_location(child.element_path)
-                parsed_dict[child.alias] = child.parse_from_parent(element, state)
-                state.pop_location()
-        elif self.required:
-            state.raise_error(
-                MissingValue, 'Missing required aggregate "{}"'.format(self.element_path)
-            )
+        for child in self._child_processors:
+            state.push_location(child.element_path)
+            parsed_dict[child.alias] = child.parse_from_parent(element, state)
+            state.pop_location()
 
         return parsed_dict
 
-    def parse_at_root(self, root, state):
+    def parse_at_root(
+            self,
+            root,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the root XML element as a dictionary."""
         parsed_dict = {}  # type: Dict
 
@@ -889,12 +978,30 @@ class _Dictionary(RootProcessor):
 
         return parsed_dict
 
-    def parse_from_parent(self, parent, state):
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the dictionary data from the provided parent XML element."""
         element = parent.find(self.element_path)
-        return self.parse_at_element(element, state)
 
-    def serialize(self, value, state):
+        if element is None and self.required:
+            state.raise_error(
+                MissingValue, 'Missing required aggregate "{}"'.format(self.element_path)
+            )
+        elif element is not None:
+            return self.parse_at_element(element, state)
+
+        return {}
+
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
         """Serialize the value to a new element and return the element."""
         if not value and self.required:
             state.raise_error(
@@ -905,7 +1012,13 @@ class _Dictionary(RootProcessor):
         self._serialize(end_element, value, state)
         return start_element
 
-    def serialize_on_parent(self, parent, value, state):
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value and add it to the parent."""
         if not value and self.required:
             state.raise_error(MissingValue, 'Missing required aggregate "{}"'.format(
@@ -917,7 +1030,13 @@ class _Dictionary(RootProcessor):
         element = _element_get_or_add_from_parent(parent, self.element_path)
         self._serialize(element, value, state)
 
-    def _serialize(self, element, value, state):
+    def _serialize(
+            self,
+            element,  # type: ET.Element
+            value,  # type: Dict
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the dictionary and append all serialized children to the element."""
         for child in self._child_processors:
             state.push_location(child.element_path)
@@ -929,7 +1048,12 @@ class _Dictionary(RootProcessor):
 class _HookedAggregate(RootProcessor):
     """A processor which decorates a processor and applies hooks to all values processed."""
 
-    def __init__(self, processor, hooks):
+    def __init__(
+            self,
+            processor,  # type: RootProcessor
+            hooks  # type: Hooks
+    ):
+        # type: (...) -> None
         self._element_path = processor.element_path
         self._required = processor.required
         self._alias = processor.alias
@@ -954,27 +1078,53 @@ class _HookedAggregate(RootProcessor):
         """Get whether the processor's value is required."""
         return self._required
 
-    def parse_at_element(self, element, state):
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the given element."""
         xml_value = self._processor.parse_at_element(element, state)
         return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
-    def parse_at_root(self, root, state):
+    def parse_at_root(
+            self,
+            root,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the given element as the root of the document."""
         xml_value = self._processor.parse_at_root(root, state)
         return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
-    def parse_from_parent(self, parent, state):
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the element from the given parent element."""
         xml_value = self._processor.parse_from_parent(parent, state)
         return _hooks_apply_after_parse(self._hooks, state, xml_value)
 
-    def serialize(self, value, state):
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
         """Serialize the value and returns it."""
         xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
         return self._processor.serialize(xml_value, state)
 
-    def serialize_on_parent(self, parent, value, state):
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value directory on the parent."""
         xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
         self._processor.serialize_on_parent(parent, xml_value, state)
@@ -985,15 +1135,16 @@ class _PrimitiveValue(Processor):
 
     def __init__(
             self,
-            element_path,
-            parser_func,
-            attribute=None,
-            required=True,
-            alias=None,
-            default=None,
-            omit_empty=False,
-            hooks=None
+            element_path,  # type: Text
+            parser_func,  # type: Callable[[Optional[Text], _ProcessorState], Any]
+            attribute=None,  # type: Optional[Text]
+            required=True,  # type: bool
+            alias=None,  # type: Optional[Text]
+            default=None,  # type: Optional[Any]
+            omit_empty=False,  # type: bool
+            hooks=None  # type: Optional[Hooks]
     ):
+        # type: (...) -> None
         """
         Create a new processor for primitive values.
 
@@ -1051,28 +1202,44 @@ class _PrimitiveValue(Processor):
         """Get whether the processor's value is required."""
         return self._required
 
-    def parse_at_element(self, element, state):
+    def parse_at_element(
+            self,
+            element,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the primitive value at the XML element."""
-        parsed_value = self._default
-
-        if element is not None:
-            if self._attribute:
-                parsed_value = self._parse_attribute(element, state)
-            else:
-                parsed_value = self._parser_func(element.text, state)
-        elif self.required:
-            state.raise_error(
-                MissingValue, 'Missing required element "{}"'.format(self.element_path)
-            )
+        if self._attribute:
+            parsed_value = self._parse_attribute(element, self._attribute, state)
+        else:
+            parsed_value = self._parser_func(element.text, state)
 
         return _hooks_apply_after_parse(self._hooks, state, parsed_value)
 
-    def parse_from_parent(self, parent, state):
+    def parse_from_parent(
+            self,
+            parent,  # type: ET.Element
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the primitive value under the parent XML element."""
         element = parent.find(self.element_path)
-        return self.parse_at_element(element, state)
 
-    def serialize(self, value, state):
+        if element is None and self.required:
+            state.raise_error(
+                MissingValue, 'Missing required element "{}"'.format(self.element_path)
+            )
+        elif element is not None:
+            return self.parse_at_element(element, state)
+
+        return _hooks_apply_after_parse(self._hooks, state, self._default)
+
+    def serialize(
+            self,
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> ET.Element
         """
         Serialize the value into a new element object and return the element.
 
@@ -1084,7 +1251,13 @@ class _PrimitiveValue(Processor):
         self._serialize(end_element, value, state)
         return start_element
 
-    def serialize_on_parent(self, parent, value, state):
+    def serialize_on_parent(
+            self,
+            parent,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value and add it to the parent element."""
         # Note that falsey values are not treated as missing, but they may be omitted.
         if value is None and self.required:
@@ -1097,6 +1270,7 @@ class _PrimitiveValue(Processor):
         self._serialize(element, value, state)
 
     def _missing_value_message(self, parent):
+        # type: (ET.Element) -> Text
         """Return the message to report that the value needed for serialization is missing."""
         if self._attribute is None:
             message = 'Missing required value for element "{}"'.format(self.element_path)
@@ -1111,11 +1285,18 @@ class _PrimitiveValue(Processor):
 
         return message
 
-    def _parse_attribute(self, element, state):
+    def _parse_attribute(
+            self,
+            element,  # type: ET.Element
+            attribute,  # type: Text
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> Any
         """Parse the primitive value within the XML element's attribute."""
         parsed_value = self._default
-        attribute_value = element.get(self._attribute, None)
-        if attribute_value:
+        attribute_value = element.get(attribute, None)
+
+        if attribute_value is not None:
             parsed_value = self._parser_func(attribute_value, state)
         elif self.required:
             state.raise_error(
@@ -1126,7 +1307,13 @@ class _PrimitiveValue(Processor):
 
         return parsed_value
 
-    def _serialize(self, element, value, state):
+    def _serialize(
+            self,
+            element,  # type: ET.Element
+            value,  # type: Any
+            state  # type: _ProcessorState
+    ):
+        # type: (...) -> None
         """Serialize the value to the element."""
         xml_value = _hooks_apply_before_serialize(self._hooks, state, value)
 
@@ -1135,14 +1322,11 @@ class _PrimitiveValue(Processor):
         # not replaced by the default.
         if xml_value is None:
             if self._default is None:
-                serialized_value = ''
+                serialized_value = Text('')
             else:
-                serialized_value = str(self._default)
+                serialized_value = Text(self._default)
         else:
-            if _PY2:
-                serialized_value = unicode(xml_value)
-            else:
-                serialized_value = str(xml_value)
+            serialized_value = Text(xml_value)
 
         if self._attribute:
             element.set(self._attribute, serialized_value)

@@ -191,7 +191,7 @@ class Hooks(object):
         self.before_serialize = before_serialize
 
 
-class Processor(object):
+class Processor(object):  # pragma: no cover
     """Abstract protocol for processors."""
 
     @property
@@ -250,7 +250,7 @@ class Processor(object):
         pass
 
 
-class RootProcessor(Processor):
+class RootProcessor(Processor):  # pragma: no cover
     """Abstract protocol for root processors."""
 
     def parse_at_root(

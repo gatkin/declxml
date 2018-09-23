@@ -1,3 +1,4 @@
 steps:
-  - script: 'make install'
+  - bash: 'make install'
     displayName: Install Dependencies
+    workingDirectory: '$(System.DefaultWorkingDirectory)'

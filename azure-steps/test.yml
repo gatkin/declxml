@@ -6,8 +6,9 @@ steps:
 
   - template: install_deps.yml
 
-  - script: 'pipenv run make coverage'
+  - bash: 'pipenv run make coverage'
     displayName: Run Tests with Coverage
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
 
   - task: PublishTestResults@2
     displayName: Publish Test Results

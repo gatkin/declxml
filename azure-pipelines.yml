@@ -11,9 +11,9 @@ jobs:
 
     - template: azure-steps/install_deps.yml
 
-    - script: |
-        pipenv run make lint
+    - bash: pipenv run make lint
       displayName: Lint
+      workingDirectory: '$(System.DefaultWorkingDirectory)'
 
   - job: Docs
     pool:

@@ -12,9 +12,7 @@ jobs:
     - template: azure-steps/install_deps.yml
 
     - script: |
-        pipenv run make check
-        pipenv run make pylint
-        pipenv run make typecheck
+        pipenv run make lint
       displayName: Lint
 
   - job: Docs

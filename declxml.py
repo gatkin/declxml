@@ -62,6 +62,8 @@ from typing import (  # noqa pylint: disable=unused-import
     NamedTuple,
     Optional,
     Text,
+    Tuple,
+    Type,
     Union,
 )
 import warnings
@@ -373,7 +375,14 @@ def serialize_to_string(
     return serialized_value.decode('utf-8')
 
 
-def array(item_processor, alias=None, nested=None, omit_empty=False, hooks=None):
+def array(
+        item_processor,  # type: Processor
+        alias=None,  # type: Optional[Text]
+        nested=None,  # type: Optional[Text]
+        omit_empty=False,  # type: bool
+        hooks=None  # type: Optional[Hooks]
+):
+    # type: (...) -> RootProcessor
     """
     Create an array processor that can be used to parse and serialize array data.
 
@@ -426,14 +435,15 @@ def array(item_processor, alias=None, nested=None, omit_empty=False, hooks=None)
 
 
 def boolean(
-        element_name,
-        attribute=None,
-        required=True,
-        alias=None,
-        default=False,
-        omit_empty=False,
-        hooks=None
+        element_name,  # type: Text
+        attribute=None,  # type: Optional[Text]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        default=False,  # type: Optional[bool]
+        omit_empty=False,  # type: bool
+        hooks=None  # type: Optional[Hooks]
 ):
+    # type: (...) -> Processor
     """
     Create a processor for boolean values.
 
@@ -467,7 +477,14 @@ def boolean(
     )
 
 
-def dictionary(element_name, children, required=True, alias=None, hooks=None):
+def dictionary(
+        element_name,  # type: Text
+        children,  # type: List[Processor]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        hooks=None  # type: Optional[Hooks]
+):
+    # type: (...) -> RootProcessor
     """
     Create a processor for dictionary values.
 
@@ -487,14 +504,15 @@ def dictionary(element_name, children, required=True, alias=None, hooks=None):
 
 
 def floating_point(
-        element_name,
-        attribute=None,
-        required=True,
-        alias=None,
-        default=0.0,
-        omit_empty=False,
-        hooks=None
+        element_name,  # type: Text
+        attribute=None,  # type: Optional[Text]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        default=0.0,  # type: Optional[float]
+        omit_empty=False,  # type: bool
+        hooks=None  # type: Optional[Hooks]
 ):
+    # type: (...) -> Processor
     """
     Create a processor for floating point values.
 
@@ -514,14 +532,15 @@ def floating_point(
 
 
 def integer(
-        element_name,
-        attribute=None,
-        required=True,
-        alias=None,
-        default=0,
-        omit_empty=False,
-        hooks=None
+        element_name,  # type: Text
+        attribute=None,  # type: Optional[Text]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        default=0,  # type: Optional[int]
+        omit_empty=False,  # type: bool
+        hooks=None  # type: Optional[Hooks]
 ):
+    # type: (...) -> Processor
     """
     Create a processor for integer values.
 
@@ -541,13 +560,14 @@ def integer(
 
 
 def named_tuple(
-        element_name,
-        tuple_type,
-        child_processors,
-        required=True,
-        alias=None,
-        hooks=None
+        element_name,  # type: Text
+        tuple_type,  # type: Type[Tuple]
+        child_processors,  # type: List[Processor]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        hooks=None  # type: Optional[Hooks]
 ):
+    # type: (...) -> RootProcessor
     """
     Create a processor for namedtuple values.
 
@@ -561,15 +581,16 @@ def named_tuple(
 
 
 def string(
-        element_name,
-        attribute=None,
-        required=True,
-        alias=None,
-        default='',
-        omit_empty=False,
-        strip_whitespace=True,
-        hooks=None
+        element_name,  # type: Text
+        attribute=None,  # type: Optional[Text]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        default='',  # type: Optional[Text]
+        omit_empty=False,  # type: bool
+        strip_whitespace=True,  # type: bool
+        hooks=None  # type: Optional[Hooks]
 ):
+    # type: (...) -> Processor
     """
     Create a processor for string values.
 
@@ -591,7 +612,15 @@ def string(
     )
 
 
-def user_object(element_name, cls, child_processors, required=True, alias=None, hooks=None):
+def user_object(
+        element_name,  # type: Text
+        cls,  # type: Type[Any]
+        child_processors,  # type: List[Processor]
+        required=True,  # type: bool
+        alias=None,  # type: Optional[Text]
+        hooks=None  # type: Optional[Hooks]
+):
+    # type: (...) -> RootProcessor
     """
     Create a processor for user objects.
 
@@ -611,18 +640,36 @@ _AggregateConverter = namedtuple('_AggregateConverter', [
 ])
 
 
-class _Aggregate(object):
+class _Aggregate(RootProcessor):
     """An XML processor for processing aggregates."""
 
     def __init__(self, element_path, converter, child_processors, required=True, alias=None):
-        self.element_path = element_path
+        self._element_path = element_path
         self._converter = converter
-        self.required = required
+        self._required = required
         self._dictionary = _Dictionary(element_path, child_processors, required, alias)
         if alias:
-            self.alias = alias
+            self._alias = alias
         else:
-            self.alias = element_path
+            self._alias = element_path
+
+    @property
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        return self._alias
+
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        return self._element_path
+
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        return self._required
 
     def parse_at_element(self, element, state):
         """Parse the provided element as an aggregate."""
@@ -650,25 +697,25 @@ class _Aggregate(object):
         self._dictionary.serialize_on_parent(parent, dict_value, state)
 
 
-class _Array(object):
+class _Array(RootProcessor):
     """An XML processor for Array values."""
 
     def __init__(self, item_processor, alias=None, nested=None, omit_empty=False):
         self._item_processor = item_processor
         self._nested = nested
-        self.required = item_processor.required
+        self._required = item_processor.required
 
         if alias:
-            self.alias = alias
+            self._alias = alias
         elif nested:
-            self.alias = nested
+            self._alias = nested
         else:
-            self.alias = item_processor.alias
+            self._alias = item_processor.alias
 
         if self._nested:
-            self.element_path = self._nested
+            self._element_path = self._nested
         else:
-            self.element_path = '.'  # Array is embedded directly on parent
+            self._element_path = '.'  # Array is embedded directly on parent
 
         self._item_path = self.element_path + '/' + self._item_processor.element_path
 
@@ -678,6 +725,24 @@ class _Array(object):
                 warnings.warn('omit_empty ignored for non-nested and/or required arrays')
         else:
             self.omit_empty = omit_empty
+
+    @property
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        return self._alias
+
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        return self._element_path
+
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        return self._required
 
     def parse_at_element(self, element, state):
         """Parse the provided element as an array."""
@@ -766,17 +831,35 @@ class _Array(object):
             state.pop_location()
 
 
-class _Dictionary(object):
+class _Dictionary(RootProcessor):
     """An XML processor for dictionary values."""
 
     def __init__(self, element_path, child_processors, required=True, alias=None):
-        self.element_path = element_path
+        self._element_path = element_path
         self._child_processors = child_processors
-        self.required = required
+        self._required = required
         if alias:
-            self.alias = alias
+            self._alias = alias
         else:
-            self.alias = element_path
+            self._alias = element_path
+
+    @property
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        return self._alias
+
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        return self._element_path
+
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        return self._required
 
     def parse_at_element(self, element, state):
         """Parse the provided element as a dictionary."""
@@ -843,15 +926,33 @@ class _Dictionary(object):
             state.pop_location()
 
 
-class _HookedAggregate(object):
+class _HookedAggregate(RootProcessor):
     """A processor which decorates a processor and applies hooks to all values processed."""
 
     def __init__(self, processor, hooks):
-        self.element_path = processor.element_path
-        self.required = processor.required
-        self.alias = processor.alias
+        self._element_path = processor.element_path
+        self._required = processor.required
+        self._alias = processor.alias
         self._processor = processor
         self._hooks = hooks
+
+    @property
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        return self._alias
+
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        return self._element_path
+
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        return self._required
 
     def parse_at_element(self, element, state):
         """Parse the given element."""
@@ -879,7 +980,7 @@ class _HookedAggregate(object):
         self._processor.serialize_on_parent(parent, xml_value, state)
 
 
-class _PrimitiveValue(object):
+class _PrimitiveValue(Processor):
     """An XML processor for processing primitive values."""
 
     def __init__(
@@ -906,19 +1007,19 @@ class _PrimitiveValue(object):
             required is False.
         :param hooks: A Hooks object.
         """
-        self.element_path = element_path
+        self._element_path = element_path
         self._parser_func = parser_func
         self._attribute = attribute
-        self.required = required
+        self._required = required
         self._default = default
         self._hooks = hooks
 
         if alias:
-            self.alias = alias
+            self._alias = alias
         elif attribute:
-            self.alias = attribute
+            self._alias = attribute
         else:
-            self.alias = element_path
+            self._alias = element_path
 
         # If a value is required, then it will never be omitted when serialized. This
         # is to ensure that data that is serialized by a processor can also be parsed
@@ -931,6 +1032,24 @@ class _PrimitiveValue(object):
                 warnings.warn('omit_empty ignored on primitive values when required is specified')
         else:
             self.omit_empty = omit_empty
+
+    @property
+    def alias(self):
+        # type: (...) -> Text
+        """Get processor's alias."""
+        return self._alias
+
+    @property
+    def element_path(self):
+        # type: (...) -> Text
+        """Get path to processor's element."""
+        return self._element_path
+
+    @property
+    def required(self):
+        # type: (...) -> bool
+        """Get whether the processor's value is required."""
+        return self._required
 
     def parse_at_element(self, element, state):
         """Parse the primitive value at the XML element."""

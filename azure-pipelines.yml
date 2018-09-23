@@ -1,5 +1,5 @@
 jobs:
-  - job: Lint and Typecheck
+  - job: Lint
     pool:
       vmImage: 'Ubuntu 16.04'
 

@@ -28,7 +28,7 @@ html-doc: docbuild
 install:
 	python -m pip install -U pip
 	python -m pip install -U pipenv
-	python -m pipenv install --dev
+	python -m pipenv install --dev --skip-lock
 
 lint: check pylint typecheck
 

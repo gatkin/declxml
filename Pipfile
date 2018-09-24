@@ -7,7 +7,7 @@ name = "pypi"
 typing = "*"
 
 [dev-packages]
-pytest = "*"
+pytest = "==3.8.0"
 "flake8" = "*"
 pydocstyle = "*"
 pylint = "*"

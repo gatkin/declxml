@@ -59,6 +59,7 @@ from typing import (  # noqa pylint: disable=unused-import
     Iterable,
     List,
     NamedTuple,
+    NoReturn,
     Optional,
     Text,
     Tuple,
@@ -71,10 +72,6 @@ import xml.etree.ElementTree as ET
 
 
 _PY2 = sys.version_info[0] == 2
-
-# Must define unicode so flake8 does not flag an undefined name on Python 3.
-if not _PY2:
-    unicode = str  # pylint: disable=invalid-name, redefined-builtin
 
 
 class XmlError(Exception):
@@ -136,7 +133,7 @@ class ProcessorStateView(object):
 
     def raise_error(
             self,
-            exception_type,  # type: Exception
+            exception_type,  # type: Type[Exception]
             message=''  # type: Text
     ):
         # type: (...) -> None
@@ -303,7 +300,7 @@ def parse_from_string(
         raise InvalidRootProcessor('Invalid root processor')
 
     parseable_xml_string = xml_string  # type: Union[Text, bytes]
-    if _PY2 and isinstance(xml_string, unicode):
+    if _PY2 and isinstance(xml_string, Text):
         parseable_xml_string = xml_string.encode('utf-8')
 
     root = ET.fromstring(parseable_xml_string)
@@ -1342,19 +1339,31 @@ class _ProcessorState(object):
 
     @property
     def locations(self):
+        # type: () -> Iterable[ProcessorLocation]
         """Get iterator of locations representing current location of the processor."""
         return iter(self._locations)
 
     def pop_location(self):
+        # type: () -> ProcessorLocation
         """Pop the most recently pushed location from the state's stack of locations."""
         return self._locations.pop()
 
-    def push_location(self, element_path, array_index=None):
+    def push_location(
+            self,
+            element_path,  # type: Text
+            array_index=None  # type: Optional[int]
+    ):
+        # type: (...) -> None
         """Push an item onto the state's stack of locations."""
         location = ProcessorLocation(element_path=element_path, array_index=array_index)
         self._locations.append(location)
 
-    def raise_error(self, exception_type, message):
+    def raise_error(
+            self,
+            exception_type,  # type: Type[Exception]
+            message  # type: Text
+    ):
+        # type: (...) -> NoReturn
         """Raise an exception with the current parser state information and error message."""
         error_message = '{} at {}'.format(message, repr(self))
         raise exception_type(error_message)
@@ -1369,15 +1378,20 @@ class _ProcessorState(object):
 
     @staticmethod
     def _location_to_string(location):
+        # type: (ProcessorLocation) -> Text
         if location.array_index is not None:
-            location_str = '{}[{}]'.format(location.element_path, location.array_index)
+            location_str = u'{}[{}]'.format(location.element_path, location.array_index)
         else:
             location_str = location.element_path
 
         return location_str
 
 
-def _element_append_path(start_element, element_names):
+def _element_append_path(
+        start_element,  # type: ET.Element
+        element_names  # type: Iterable[Text]
+):
+    # type: (...) -> ET.Element
     """
     Append the list of element names as a path to the provided start element.
 
@@ -1392,7 +1406,11 @@ def _element_append_path(start_element, element_names):
     return end_element
 
 
-def _element_find_from_root(root, element_path):
+def _element_find_from_root(
+        root,  # type: ET.Element
+        element_path  # type: Text
+):
+    # type: (...) -> Optional[ET.Element]
     """
     Find the element specified by the given path starting from the root element of the document.
 
@@ -1411,7 +1429,11 @@ def _element_find_from_root(root, element_path):
     return element
 
 
-def _element_get_or_add_from_parent(parent, element_path):
+def _element_get_or_add_from_parent(
+        parent,  # type: ET.Element
+        element_path  # type: Text
+):
+    # type: (...) -> ET.Element
     """
     Ensure all elements specified in the given path relative to the provided parent element exist.
 
@@ -1434,10 +1456,12 @@ def _element_get_or_add_from_parent(parent, element_path):
 
         previous_element = existing_element
 
+    assert existing_element is not None
     return existing_element
 
 
 def _element_path_create_new(element_path):
+    # type: (Text) -> Tuple[ET.Element, ET.Element]
     """
     Create an entirely new element path.
 
@@ -1452,7 +1476,12 @@ def _element_path_create_new(element_path):
     return start_element, end_element
 
 
-def _hooks_apply_after_parse(hooks, state, value):
+def _hooks_apply_after_parse(
+        hooks,  # type: Optional[Hooks]
+        state,  # type: _ProcessorState
+        value  # type: Any
+):
+    # type: (...) -> Any
     """Apply the after parse hook."""
     if hooks and hooks.after_parse:
         return hooks.after_parse(ProcessorStateView(state), value)
@@ -1460,7 +1489,12 @@ def _hooks_apply_after_parse(hooks, state, value):
     return value
 
 
-def _hooks_apply_before_serialize(hooks, state, value):
+def _hooks_apply_before_serialize(
+        hooks,  # type: Optional[Hooks]
+        state,  # type: _ProcessorState
+        value  # type: Any
+):
+    # type: (...) -> Any
     """Apply the before serialize hook."""
     if hooks and hooks.before_serialize:
         return hooks.before_serialize(ProcessorStateView(state), value)
@@ -1469,11 +1503,13 @@ def _hooks_apply_before_serialize(hooks, state, value):
 
 
 def _is_valid_root_processor(processor):
+    # type: (Processor) -> bool
     """Return True if the given XML processor can be used as a root processor."""
     return hasattr(processor, 'parse_at_root')
 
 
 def _named_tuple_converter(tuple_type):
+    # type: (Type[Tuple]) -> _AggregateConverter
     """Return an _AggregateConverter for named tuples of the given type."""
     def _from_dict(dict_value):
         return tuple_type(**dict_value)
@@ -1519,7 +1555,11 @@ def _parse_boolean(element_text, state):
     return value
 
 
-def _processor_wrap_if_hooks(processor, hooks):
+def _processor_wrap_if_hooks(
+        processor,  # type: RootProcessor
+        hooks  # type: Optional[Hooks]
+):
+    # type: (...) -> RootProcessor
     """Create a hooked processor if a valid hooks object is provided."""
     if hooks:
         return _HookedAggregate(processor, hooks)
@@ -1543,6 +1583,7 @@ def _string_parser(strip_whitespace):
 
 
 def _user_object_converter(cls):
+    # type: (Type[Any]) -> _AggregateConverter
     """Return an _AggregateConverter for a user object of the given class."""
     def _from_dict(dict_value):
         try:
@@ -1562,11 +1603,11 @@ def _user_object_converter(cls):
 
         return {}
 
-    converter = _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
-    return converter
+    return _AggregateConverter(from_dict=_from_dict, to_dict=_to_dict)
 
 
 def _xml_namespace_strip(root):
+    # type: (ET.Element) -> None
     """Strip the XML namespace prefix from all element tags under the given root Element."""
     if '}' not in root.tag:
         return  # Nothing to do, no namespace present

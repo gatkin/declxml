@@ -15,7 +15,7 @@ setup(
     description='Declarative XML processing library',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='1.1.2-rc1',
+    version='1.1.2rc3',
     url='http://declxml.readthedocs.io/',
     project_urls={
         'Documentation': 'http://declxml.readthedocs.io/',
@@ -26,6 +26,7 @@ setup(
     author_email='greg.scott.atkin@gmail.com',
     license='MIT',
     py_modules=['declxml'],
+    install_requires=['typing'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

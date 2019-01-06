@@ -111,3 +111,4 @@ ENV/
 Pipfile.lock
 
 test-results.xml
+.DS_Store

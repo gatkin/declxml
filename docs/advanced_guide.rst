@@ -212,12 +212,12 @@ By default, declxml only performs a very basic level of validation by ensuring
 that required values are present and that they are of the correct type. Hooks
 provide the ability to perform additional, application-specific validation.
 
-When performing validation, we can use the ``ProcessorStateView`` object provided
-as the first parameter to the ``after_parse`` and ``before_serialize`` functions.
-The ``ProcessorStateView`` object provides a useful method, ``raise_error``, for
-reporting errors. This method will raise an application-provided exception
-with a custom error message and will include information about the current
-state of the processor in the error message.
+When performing validation, we can use the ``ProcessorStateView`` object
+provided as the first parameter to the ``after_parse`` and ``before_serialize``
+functions. The ``ProcessorStateView`` object provides a useful method,
+``raise_error``, for reporting errors. This method will raise an
+application-provided exception with a custom error message and will include
+information about the current state of the processor in the error message.
 
 For example, if we want to ensure that integer values are in a specific range,
 we could use hooks to perform the validation.

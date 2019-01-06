@@ -441,8 +441,8 @@ function.
       <birth-year>1920</birth-year>
     </author>
 
-Note that the class provided to the ``user_object`` factory function must have a
-zero-argument constructor. It is also possible to pass any other callable
+Note that the class provided to the ``user_object`` factory function must have
+a zero-argument constructor. It is also possible to pass any other callable
 object that takes zero parameters and returns an object instance to which
 parsed values will be read into.
 

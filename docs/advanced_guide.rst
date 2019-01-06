@@ -127,26 +127,26 @@ without any '.' or '/' characters.
 Hooks
 -----
 Hooks are an advanced feature that allow arbitrary code to be executed during
-the parsing and serialization process. A `Hooks` object is associated with a
-processor and contains two functions: `after_parse` and `before_serialize`.
+the parsing and serialization process. A ``Hooks`` object is associated with a
+processor and contains two functions: ``after_parse`` and ``before_serialize``.
 
 Both of these functions (which can be any callable object) are provided two
 parameters and should return a single value. The first parameter provided to
-both functions is a `ProcessorStateView` object which contains information
+both functions is a ``ProcessorStateView`` object which contains information
 about the current state of the processor when the function is invoked.
 
-The `after_parse` function is invoked after a processor has parsed a value
-from the XML data. The second parameter provided to the `after_parse` function
-is the value parsed by the processor from the XML data. The `after_parse`
+The ``after_parse`` function is invoked after a processor has parsed a value
+from the XML data. The second parameter provided to the ``after_parse`` function
+is the value parsed by the processor from the XML data. The ``after_parse``
 function must return a single value which will be used by the processor as its
-parse result. The value returned by `after_parse` replaces the value parsed
+parse result. The value returned by ``after_parse`` replaces the value parsed
 from the XML data as the processor's parse result.
 
-The `before_serialize` function is invoked before a processor serializes a
-value to XML. The second parameter provided to the `before_serialize` function
-is the value to be serialized by the processor to XML. The `before_serialize`
+The ``before_serialize`` function is invoked before a processor serializes a
+value to XML. The second parameter provided to the ``before_serialize`` function
+is the value to be serialized by the processor to XML. The ``before_serialize``
 function must return a single value which the processor will serialize to XML.
-The value returned by `before_serialize` replaces the value provided to the
+The value returned by ``before_serialize`` replaces the value provided to the
 processor to serialize to XML.
 
 There are three intended use cases for hooks (though since hooks can be any
@@ -163,9 +163,9 @@ parsing into a shape more convenient for the application to use and transform
 values during serialization back into shapes that better fit the XML structure.
 
 Hooks can be used to achieve this by simply returning the transformed value
-from the `after_parse` and `before_serialize` functions. This works because
+from the ``after_parse`` and ``before_serialize`` functions. This works because
 whatever value a processor was going to use for parsing or serialization is
-replaced by the value returned by `after_parse` or `before_serialize`.
+replaced by the value returned by ``after_parse`` or ``before_serialize``.
 
 As a basic example, if we want to make sure all strings read from an XML
 document are uppercase when used in our application and lowercase when written
@@ -201,7 +201,7 @@ to XML, we could use hooks to perform value transformations.
     </data>
 
 When using hooks to perform value transformations, it is a good idea to ensure
-that the transformations performed by `after_parse` and `before_serialize` are
+that the transformations performed by ``after_parse`` and ``before_serialize`` are
 inverse operations of each other so that parsing and serialization work
 correctly when using transformed values. This is particularly important when
 values are transformed into different types.
@@ -212,9 +212,9 @@ By default, declxml only performs a very basic level of validation by ensuring
 that required values are present and that they are of the correct type. Hooks
 provide the ability to perform additional, application-specific validation.
 
-When performing validation, we can use the `ProcessorStateView` object provided
-as the first parameter to the `after_parse` and `before_serialize` functions.
-The `ProcessorStateView` object provides a useful method, `raise_error`, for
+When performing validation, we can use the ``ProcessorStateView`` object provided
+as the first parameter to the ``after_parse`` and ``before_serialize`` functions.
+The ``ProcessorStateView`` object provides a useful method, ``raise_error``, for
 reporting errors. This method will raise an application-provided exception
 with a custom error message and will include information about the current
 state of the processor in the error message.
@@ -263,15 +263,15 @@ we could use hooks to perform the validation.
     RuntimeError: Invalid value -90 at data/value
 
 When using hooks for validation, it is important to remember to return the
-value from the `before_parse` and `after_serialize` functions since the
+value from the ``before_parse`` and ``after_serialize`` functions since the
 processor will used the value returned by those functions as its parsing result
 and the value to serialize to XML, respectively.
 
 Debugging
 """""""""
 Hooks can also be used to debug processors. We can use the
-`ProcessorStateView` object provided to the `before_parse` and
-`after_serialize` functions to include information about which values are
+``ProcessorStateView`` object provided to the ``before_parse`` and
+``after_serialize`` functions to include information about which values are
 received in which locations in the XML document.
 
 .. sourcecode:: py

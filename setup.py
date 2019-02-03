@@ -15,7 +15,7 @@ setup(
     description='Declarative XML processing library',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version='1.1.2',
+    version='1.1.3',
     url='http://declxml.readthedocs.io/',
     project_urls={
         'Documentation': 'http://declxml.readthedocs.io/',

@@ -1512,7 +1512,11 @@ def _named_tuple_converter(tuple_type):
     # type: (Type[Tuple]) -> _AggregateConverter
     """Return an _AggregateConverter for named tuples of the given type."""
     def _from_dict(dict_value):
-        return tuple_type(**dict_value)
+        if dict_value:
+            return tuple_type(**dict_value)
+
+        # Cannot construct a namedtuple value from an empty dictionary
+        return None
 
     def _to_dict(value):
         if value:

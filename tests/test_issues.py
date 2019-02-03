@@ -9,6 +9,36 @@ import declxml as xml
 from .helpers import strip_xml
 
 
+def test_parse_missing_non_required_namedtuple_issue_24():
+    """Parse XML with a non-required namedtuple value."""
+    Author = namedtuple('Author', [
+        'name',
+        'genre',
+    ])
+    Genre = namedtuple('Genre', [
+        'name',
+    ])
+
+    processor = xml.named_tuple('author', Author, [
+        xml.string('name'),
+        xml.named_tuple('genre', Genre, [
+            xml.string('name')
+        ], required=False)
+    ])
+
+    author_xml = """
+    <author>
+        <name>Robert A. Heinlein</name>
+    </author>
+    """
+
+    expected_value = Author(name='Robert A. Heinlein', genre=None)
+
+    actual_value = xml.parse_from_string(processor, author_xml)
+
+    assert expected_value == actual_value
+
+
 def test_serialize_none_namedtuple_issue_7():
     """Tests attempting to serialize a named tuple value that is None"""
     Athlete = namedtuple('Athlete', [

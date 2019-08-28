@@ -238,13 +238,14 @@ class TestCustomErrorMessage(object):
         with pytest.raises(_ValidationError) as parse_exception:
             xml.parse_from_string(processor, xml_string)
 
-        actual_parse_message = str(parse_exception)
+        actual_parse_message = str(parse_exception.value)
+        print(actual_parse_message)
         assert actual_parse_message.endswith(expected_location)
 
         with pytest.raises(_ValidationError) as serialize_exception:
             xml.serialize_to_string(processor, value)
 
-        actual_serialize_message = str(serialize_exception)
+        actual_serialize_message = str(serialize_exception.value)
         assert actual_serialize_message.endswith(expected_location)
 
     @property

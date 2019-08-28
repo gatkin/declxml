@@ -31,7 +31,7 @@ class _ErrorMessageTestCase(object):
         with pytest.raises(self.expected_exception_type) as exception_info:
             xml.parse_from_string(self.processor, self.xml_string)
 
-        actual_message = str(exception_info)
+        actual_message = str(exception_info.value)
         assert actual_message.endswith(self.expected_message)
 
     def test_serialize(self):
@@ -39,7 +39,7 @@ class _ErrorMessageTestCase(object):
         with pytest.raises(self.expected_exception_type) as exception_info:
             xml.serialize_to_string(self.processor, self.value)
 
-        actual_message = str(exception_info)
+        actual_message = str(exception_info.value)
         assert actual_message.endswith(self.expected_message)
 
 

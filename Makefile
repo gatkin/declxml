@@ -26,8 +26,7 @@ html-doc: docbuild
 	open docs/_build/html/index.html
 
 install:
-	python -m pip install -U pip
-	python -m pip install -U pipenv
+	python -m pip install pipenv
 	python -m pipenv install --dev --skip-lock
 
 lint: check pylint typecheck

@@ -7,7 +7,7 @@ jobs:
     - task: UsePythonVersion@0
       displayName: Setup Python
       inputs:
-        versionSpec: '3.7'
+        versionSpec: '3.7.0'
 
     - template: azure-steps/install_deps.yml
 
@@ -23,7 +23,7 @@ jobs:
     - task: UsePythonVersion@0
       displayName: Setup Python
       inputs:
-        versionSpec: '3.7'
+        versionSpec: '3.7.0'
 
     - template: azure-steps/install_deps.yml
 
@@ -40,7 +40,7 @@ jobs:
         python27:
           python.version: '2.7'
         python37:
-          python.version: '3.7'
+          python.version: '3.7.0'
 
     steps:
     - template: azure-steps/test.yml
@@ -56,7 +56,7 @@ jobs:
         python27:
           python.version: '2.7'
         python37:
-          python.version: '3.7'
+          python.version: '3.7.0'
 
     steps:
     - template: azure-steps/test.yml
@@ -72,7 +72,7 @@ jobs:
         python27:
           python.version: '2.7'
         python37:
-          python.version: '3.7'
+          python.version: '3.7.0'
 
     steps:
     - template: azure-steps/test.yml
@@ -94,7 +94,7 @@ jobs:
     - task: UsePythonVersion@0
       displayName: Setup Python
       inputs:
-        versionSpec: '3.7'
+        versionSpec: '3.7.0'
 
     - task: PyPIPublisher@0
       displayName: Package and Publish to PyPI

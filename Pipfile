@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 typing = "*"
+lxml = "*"
 
 [dev-packages]
 pytest = "==3.8.0"
@@ -15,7 +16,7 @@ coverage = "*"
 sphinx = "*"
 "doc8" = "*"
 codecov = "*"
-cosmic-ray-pytest-runner = {version = "*", python_version = ">= '3.6'"}
-cosmic-ray = {version = "*", python_version = ">= '3.6'"}
+cosmic-ray-pytest-runner = {version = "*",python_version = ">= '3.6'"}
+cosmic-ray = {version = "*",python_version = ">= '3.6'"}
 attrs = "*"
-mypy = {version = "==0.630", python_version = ">= '3.6'"}
+mypy = {version = "==0.630",python_version = ">= '3.6'"}

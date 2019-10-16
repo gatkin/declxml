@@ -493,7 +493,7 @@ def test_primitive_transform_attribute():
     """Transform a primitive value that is an attribute"""
     xml_string = strip_xml("""
     <data>
-        <element value="3" />
+        <element value="3"/>
     </data>
     """)
 

@@ -112,7 +112,7 @@ def test_array_serialize_array_of_arrays_omit_empty():
             <value>2</value>
             <value>4</value>
         </test-run>
-        <test-run />
+        <test-run/>
         <test-run>
             <value>12</value>
             <value>32</value>
@@ -123,7 +123,6 @@ def test_array_serialize_array_of_arrays_omit_empty():
     """)
 
     actual = xml.serialize_to_string(processor, value)
-
     assert expected == actual
 
 
@@ -180,7 +179,7 @@ def test_array_serialize_missing_optional_nested():
     expected = strip_xml("""
     <root>
         <message>Hello</message>
-        <data />
+        <data/>
     </root>
     """)
 
@@ -366,7 +365,7 @@ def test_array_serialize_primitive_omit_empty():
     expected = strip_xml("""
     <root>
         <value>Hello</value>
-        <value />
+        <value></value>
         <value>Hola</value>
         <value>Bonjour</value>
     </root>
@@ -447,7 +446,7 @@ def test_attribute_serialize():
 
     expected = strip_xml("""
     <root>
-        <element value="Hello, World" />
+        <element value="Hello, World"/>
     </root>
     """)
 
@@ -468,7 +467,7 @@ def test_attribute_serialize_aliased():
 
     expected = strip_xml("""
     <root>
-        <constant value="3.14" />
+        <constant value="3.14"/>
     </root>
     """)
 
@@ -1027,7 +1026,7 @@ def test_primitive_values_serialize_falsey():
         <boolean>False</boolean>
         <float>0.0</float>
         <int>0</int>
-        <string />
+        <string></string>
     </root>
     """)
 
@@ -1053,7 +1052,7 @@ def test_primitive_values_serialize_falsey_omitted():
     ])
 
     expected = strip_xml("""
-    <root />
+    <root/>
     """)
 
     actual = xml.serialize_to_string(processor, value)
@@ -1074,10 +1073,10 @@ def test_primitive_values_serialize_none_default():
 
     expected = strip_xml("""
     <root>
-        <boolean />
-        <float />
-        <int />
-        <string />
+        <boolean></boolean>
+        <float></float>
+        <int></int>
+        <string></string>
     </root>
     """)
 

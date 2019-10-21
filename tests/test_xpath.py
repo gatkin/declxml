@@ -28,8 +28,8 @@ class TestDot(_ProcessorTestCase):
 
     xml_string = strip_xml("""
     <files>
-        <file name="a.txt" size="236" />
-        <file name="b.txt" size="7654" />
+        <file name="a.txt" size="236"/>
+        <file name="b.txt" size="7654"/>
     </files>
     """)
 
@@ -218,9 +218,9 @@ class TestSlashFromRootArray(_ProcessorTestCase):
     xml_string = strip_xml("""
     <locations>
         <cities>
-            <city name="Kansas City" state="MO" />
-            <city name="Lincoln" state="NE" />
-            <city name="Salt Lake City" state="UT" />
+            <city name="Kansas City" state="MO"/>
+            <city name="Lincoln" state="NE"/>
+            <city name="Salt Lake City" state="UT"/>
         </cities>
     </locations>
     """)

@@ -68,7 +68,7 @@ from typing import (  # noqa pylint: disable=unused-import
 )
 import warnings
 from xml.dom import minidom  # type: ignore
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 
 
 _PY2 = sys.version_info[0] == 2

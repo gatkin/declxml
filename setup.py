@@ -26,7 +26,7 @@ setup(
     author_email='greg.scott.atkin@gmail.com',
     license='MIT',
     py_modules=['declxml'],
-    install_requires=['typing'],
+    install_requires=['typing; python_version <= "3.5"'],
     data_files=[('', ['py.typed'])],
     zip_safe=False,
     classifiers=[
